@@ -615,53 +615,6 @@
         </div>
     </div>
 
-    <!-- Login/Signup Modal -->
-    <div class="edit-modal" id="authModal">
-        <div class="edit-modal-content">
-            <div class="edit-modal-header" id="authHeader">Sign In</div>
-            <div id="authForm">
-                <div class="form-group">
-                    <label for="authEmail">Email</label>
-                    <input type="email" id="authEmail" required placeholder="your@email.com">
-                </div>
-
-                <div class="form-group">
-                    <label for="authPassword">Password</label>
-                    <input type="password" id="authPassword" required placeholder="Enter password">
-                </div>
-
-                <div id="authError" style="color: #dc3545; margin-bottom: 15px; font-size: 0.9em; display: none;"></div>
-
-                <div class="edit-modal-buttons">
-                    <button type="button" id="signInBtn">Sign In</button>
-                    <button type="button" class="cancel-btn" id="signUpBtn">Sign Up</button>
-                </div>
-
-                <div style="text-align: center; margin-top: 15px; font-size: 0.85em; color: #666;">
-                    <div id="authSwitchText">Don't have an account? Click Sign Up</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import Modal -->
-    <div class="edit-modal" id="importModal">
-        <div class="edit-modal-content">
-            <div class="edit-modal-header">Import Books</div>
-            <div>
-                <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
-                    Paste your exported book data below:
-                </p>
-                <textarea id="importTextArea" rows="10" style="width: 100%; padding: 12px; border: 1px solid #d4d4cf; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical;" placeholder='Paste your exported data here (should start with "[" and end with "]")'></textarea>
-                
-                <div class="edit-modal-buttons" style="margin-top: 20px;">
-                    <button type="button" class="cancel-btn" id="cancelImportBtn">Cancel</button>
-                    <button type="button" id="confirmImportBtn">Import</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Edit Modal -->
     <div class="edit-modal" id="editModal">
         <div class="edit-modal-content">
@@ -722,21 +675,13 @@
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        let currentUser = null;
+        // Use a fixed user ID since only one person uses the app
+        let currentUser = { id: 'solo-user-ipshita' };
         
         document.addEventListener('DOMContentLoaded', async function() {
         
-        // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-            currentUser = session.user;
-            console.log('User logged in:', currentUser.email);
-            await loadBooksFromSupabase();
-        } else {
-            // Show login modal
-            document.getElementById('authModal').classList.add('active');
-        }
+        // Load books directly from Supabase
+        await loadBooksFromSupabase();
         let books = JSON.parse(localStorage.getItem('readingBooks') || '[]');
         let currentRating = 0;
         let currentCoverImage = null;
@@ -895,140 +840,6 @@
                 throw error;
             }
         }
-
-        async function migrateLocalStorageToSupabase() {
-            const localBooks = JSON.parse(localStorage.getItem('readingBooks') || '[]');
-            
-            if (localBooks.length === 0) {
-                console.log('No local books to migrate');
-                return;
-            }
-
-            console.log(`Migrating ${localBooks.length} books from localStorage to Supabase...`);
-
-            for (const book of localBooks) {
-                try {
-                    await saveBookToSupabase(book);
-                } catch (error) {
-                    console.error('Failed to migrate book:', book.title, error);
-                }
-            }
-
-            console.log('Migration complete');
-            localStorage.removeItem('readingBooks');
-            await loadBooksFromSupabase();
-        }
-
-        // Authentication handlers
-        document.getElementById('signInBtn').addEventListener('click', async function() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const errorDiv = document.getElementById('authError');
-
-            if (!email || !password) {
-                errorDiv.textContent = 'Please enter email and password';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                console.log('Signed in:', currentUser.email);
-                
-                document.getElementById('authModal').classList.remove('active');
-                await loadBooksFromSupabase();
-                
-            } catch (error) {
-                console.error('Sign in error:', error);
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
-
-        document.getElementById('signUpBtn').addEventListener('click', async function() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const errorDiv = document.getElementById('authError');
-
-            if (!email || !password) {
-                errorDiv.textContent = 'Please enter email and password';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            if (password.length < 6) {
-                errorDiv.textContent = 'Password must be at least 6 characters';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                console.log('Signed up:', currentUser.email);
-                
-                document.getElementById('authModal').classList.remove('active');
-                
-                // Migrate localStorage books to Supabase
-                await migrateLocalStorageToSupabase();
-                
-            } catch (error) {
-                console.error('Sign up error:', error);
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
-
-        document.getElementById('importFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const importedBooks = JSON.parse(event.target.result);
-                    
-                    if (!Array.isArray(importedBooks)) {
-                        console.error('Invalid file format');
-                        return;
-                    }
-
-                    // Merge with existing books (avoid duplicates by title+date)
-                    const existingKeys = new Set(books.map(b => `${b.title}-${b.dateFinished}`));
-                    const newBooks = importedBooks.filter(b => !existingKeys.has(`${b.title}-${b.dateFinished}`));
-                    
-                    books = [...books, ...newBooks];
-                    localStorage.setItem('readingBooks', JSON.stringify(books));
-                    
-                    console.log(`Imported ${newBooks.length} new books (${importedBooks.length - newBooks.length} duplicates skipped)`);
-                    
-                    populateYearFilter();
-                    updateGenreDropdowns();
-                    renderBooks();
-                    renderStats();
-                    
-                    // Reset file input
-                    e.target.value = '';
-                    
-                } catch (error) {
-                    console.error('Error importing books:', error);
-                }
-            };
-            reader.readAsText(file);
-        });
 
         document.getElementById('manualGenre').addEventListener('change', function() {
             const customGenreGroup = document.getElementById('customGenreGroup');
