@@ -675,8 +675,8 @@
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Use a fixed user ID since only one person uses the app
-        let currentUser = { id: 'solo-user-ipshita' };
+        // Use a fixed UUID for solo user (valid UUID format required by Supabase)
+        let currentUser = { id: '00000000-0000-0000-0000-000000000001' };
         
         document.addEventListener('DOMContentLoaded', async function() {
         
