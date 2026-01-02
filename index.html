@@ -680,11 +680,13 @@
         
         document.addEventListener('DOMContentLoaded', async function() {
         
-        // Load books directly from Supabase
-        await loadBooksFromSupabase();
-        let books = JSON.parse(localStorage.getItem('readingBooks') || '[]');
+        // Initialize variables first
+        let books = [];
         let currentRating = 0;
         let currentCoverImage = null;
+        
+        // Load books directly from Supabase
+        await loadBooksFromSupabase();
 
         // Get all unique genres from books
         function getAllGenres() {
@@ -728,7 +730,12 @@
 
         // Supabase sync functions
         async function loadBooksFromSupabase() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                console.error('No user defined for loading');
+                return;
+            }
+
+            console.log('Loading books from Supabase for user_id:', currentUser.id);
 
             try {
                 const { data, error } = await supabase
@@ -737,7 +744,15 @@
                     .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase load error details:', error);
+                    console.error('Error message:', error.message);
+                    console.error('Error code:', error.code);
+                    throw error;
+                }
+
+                console.log('Raw data from Supabase:', data);
+                console.log('Number of books loaded:', data ? data.length : 0);
 
                 // Convert Supabase format to local format
                 books = data.map(book => ({
@@ -752,7 +767,7 @@
                     apiRating: book.api_rating || ''
                 }));
 
-                console.log(`Loaded ${books.length} books from Supabase`);
+                console.log(`Successfully loaded ${books.length} books from Supabase`);
                 populateYearFilter();
                 updateGenreDropdowns();
                 renderBooks();
@@ -760,6 +775,7 @@
                 
             } catch (error) {
                 console.error('Error loading books:', error);
+                console.error('Full error:', JSON.stringify(error, null, 2));
             }
         }
 
