@@ -764,7 +764,13 @@
         }
 
         async function saveBookToSupabase(book) {
-            if (!currentUser) return;
+            if (!currentUser) {
+                console.error('No user defined');
+                return;
+            }
+
+            console.log('Saving book to Supabase with user_id:', currentUser.id);
+            console.log('Book data:', book);
 
             try {
                 const { data, error } = await supabase
@@ -782,14 +788,20 @@
                     }])
                     .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error details:', error);
+                    console.error('Error message:', error.message);
+                    console.error('Error code:', error.code);
+                    throw error;
+                }
 
                 // Update local book with Supabase ID
                 book.id = data[0].id;
-                console.log('Book saved to Supabase:', book.title);
+                console.log('Book saved successfully to Supabase:', book.title);
                 
             } catch (error) {
                 console.error('Error saving book:', error);
+                console.error('Full error object:', JSON.stringify(error, null, 2));
                 throw error;
             }
         }
