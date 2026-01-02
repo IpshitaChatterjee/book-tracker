@@ -644,6 +644,24 @@
         </div>
     </div>
 
+    <!-- Import Modal -->
+    <div class="edit-modal" id="importModal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">Import Books</div>
+            <div>
+                <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">
+                    Paste your exported book data below:
+                </p>
+                <textarea id="importTextArea" rows="10" style="width: 100%; padding: 12px; border: 1px solid #d4d4cf; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical;" placeholder='Paste your exported data here (should start with "[" and end with "]")'></textarea>
+                
+                <div class="edit-modal-buttons" style="margin-top: 20px;">
+                    <button type="button" class="cancel-btn" id="cancelImportBtn">Cancel</button>
+                    <button type="button" id="confirmImportBtn">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Modal -->
     <div class="edit-modal" id="editModal">
         <div class="edit-modal-content">
@@ -708,19 +726,14 @@
         
         document.addEventListener('DOMContentLoaded', async function() {
         
-        console.log('Page loaded, checking auth status...');
-        
         // Check for existing session
         const { data: { session } } = await supabase.auth.getSession();
-        
-        console.log('Session:', session);
         
         if (session) {
             currentUser = session.user;
             console.log('User logged in:', currentUser.email);
             await loadBooksFromSupabase();
         } else {
-            console.log('No session found, showing auth modal');
             // Show login modal
             document.getElementById('authModal').classList.add('active');
         }
@@ -767,79 +780,6 @@
 
         // Initialize genre dropdowns
         updateGenreDropdowns();
-
-        // Authentication handlers
-        document.getElementById('signInBtn').addEventListener('click', async function() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const errorDiv = document.getElementById('authError');
-
-            if (!email || !password) {
-                errorDiv.textContent = 'Please enter email and password';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                console.log('Signed in:', currentUser.email);
-                
-                document.getElementById('authModal').classList.remove('active');
-                await loadBooksFromSupabase();
-                
-            } catch (error) {
-                console.error('Sign in error:', error);
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
-
-        document.getElementById('signUpBtn').addEventListener('click', async function() {
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const errorDiv = document.getElementById('authError');
-
-            if (!email || !password) {
-                errorDiv.textContent = 'Please enter email and password';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            if (password.length < 6) {
-                errorDiv.textContent = 'Password must be at least 6 characters';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-
-                currentUser = data.user;
-                console.log('Signed up:', currentUser.email);
-                
-                document.getElementById('authModal').classList.remove('active');
-                
-                // Migrate localStorage books to Supabase
-                await migrateLocalStorageToSupabase();
-                
-            } catch (error) {
-                console.error('Sign up error:', error);
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
 
         // Supabase sync functions
         async function loadBooksFromSupabase() {
@@ -978,6 +918,118 @@
             localStorage.removeItem('readingBooks');
             await loadBooksFromSupabase();
         }
+
+        // Authentication handlers
+        document.getElementById('signInBtn').addEventListener('click', async function() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const errorDiv = document.getElementById('authError');
+
+            if (!email || !password) {
+                errorDiv.textContent = 'Please enter email and password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                console.log('Signed in:', currentUser.email);
+                
+                document.getElementById('authModal').classList.remove('active');
+                await loadBooksFromSupabase();
+                
+            } catch (error) {
+                console.error('Sign in error:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        document.getElementById('signUpBtn').addEventListener('click', async function() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const errorDiv = document.getElementById('authError');
+
+            if (!email || !password) {
+                errorDiv.textContent = 'Please enter email and password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) throw error;
+
+                currentUser = data.user;
+                console.log('Signed up:', currentUser.email);
+                
+                document.getElementById('authModal').classList.remove('active');
+                
+                // Migrate localStorage books to Supabase
+                await migrateLocalStorageToSupabase();
+                
+            } catch (error) {
+                console.error('Sign up error:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        document.getElementById('importFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedBooks = JSON.parse(event.target.result);
+                    
+                    if (!Array.isArray(importedBooks)) {
+                        console.error('Invalid file format');
+                        return;
+                    }
+
+                    // Merge with existing books (avoid duplicates by title+date)
+                    const existingKeys = new Set(books.map(b => `${b.title}-${b.dateFinished}`));
+                    const newBooks = importedBooks.filter(b => !existingKeys.has(`${b.title}-${b.dateFinished}`));
+                    
+                    books = [...books, ...newBooks];
+                    localStorage.setItem('readingBooks', JSON.stringify(books));
+                    
+                    console.log(`Imported ${newBooks.length} new books (${importedBooks.length - newBooks.length} duplicates skipped)`);
+                    
+                    populateYearFilter();
+                    updateGenreDropdowns();
+                    renderBooks();
+                    renderStats();
+                    
+                    // Reset file input
+                    e.target.value = '';
+                    
+                } catch (error) {
+                    console.error('Error importing books:', error);
+                }
+            };
+            reader.readAsText(file);
+        });
+
         document.getElementById('manualGenre').addEventListener('change', function() {
             const customGenreGroup = document.getElementById('customGenreGroup');
             console.log('Genre selected:', this.value);
@@ -1323,14 +1375,9 @@
             console.log('Book object:', book);
 
             // Save to Supabase
-            try {
-                await saveBookToSupabase(book);
-                books.unshift(book);
-                updateGenreDropdowns();
-            } catch (error) {
-                console.error('Failed to save book:', error);
-                throw new Error('Failed to save book to cloud');
-            }
+            await saveBookToSupabase(book);
+            books.unshift(book);
+            updateGenreDropdowns();
 
             // Reset inputs
             document.getElementById('bookTitle').value = '';
@@ -1486,13 +1533,12 @@
             try {
                 console.log('Fetching details for:', title);
                 
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                const response = await fetch("/api/claude", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
                         max_tokens: 1000,
                         messages: [
                             { 
@@ -1788,13 +1834,12 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
 
                 console.log('Fetching personalized recommendations...');
 
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                const response = await fetch("/api/claude", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        model: "claude-sonnet-4-20250514",
                         max_tokens: 2500,
                         messages: [
                             { 
