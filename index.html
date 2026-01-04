@@ -616,10 +616,11 @@
 
             /* Synopsis wraps to full width below on mobile */
             .book-synopsis {
-                width: 100%;
-                order: 3;
+                margin-left: -85px; /* -(cover width 70px + gap 15px) */
+                width: calc(100% + 85px); /* Add back the cover + gap width */
                 margin-top: 12px;
                 padding-top: 12px;
+                padding-left: 0;
                 border-top: 1px solid #e8e8e3;
                 font-size: 0.9em;
                 word-wrap: break-word;
@@ -716,9 +717,9 @@
         </div>
 
         <div class="tabs">
-            <div class="tab active" data-tab="library">My Library</div>
+            <div class="tab active" data-tab="library">Library</div>
             <div class="tab" data-tab="add">Add Book</div>
-            <div class="tab" data-tab="recommendations">Get Recommendations</div>
+            <div class="tab" data-tab="recommendations">Read Next</div>
         </div>
 
         <div class="content">
@@ -1789,6 +1790,7 @@ Response must be valid JSON only.`
                             <span class="rating-display">${'★'.repeat(book.rating)}${'☆'.repeat(5-book.rating)}</span>
                             <span>Finished: ${new Date(book.dateFinished).toLocaleDateString()}</span>
                         </div>
+                        ${book.apiRating ? `<div style="color: #999; font-size: 0.85em; margin-top: 8px;">Goodreads: ${book.apiRating}</div>` : ''}
                         ${fullSynopsis ? `
                             <div class="book-synopsis">
                                 <span class="synopsis-text-${book.id}">${truncatedSynopsis}</span>
@@ -1797,7 +1799,6 @@ Response must be valid JSON only.`
                                 ` : ''}
                             </div>
                         ` : ''}
-                        ${book.apiRating ? `<div style="color: #999; font-size: 0.85em; margin-top: 8px;">Goodreads: ${book.apiRating}</div>` : ''}
                     </div>
                     <button class="delete-btn-icon" data-book-id="${book.id}" title="Options">⋯</button>
                     <div class="book-menu" id="menu-${book.id}">
