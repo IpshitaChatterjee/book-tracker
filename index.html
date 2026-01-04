@@ -194,16 +194,11 @@
             flex: 1;
         }
 
-        .book-card-top {
-            display: flex;
-            gap: 20px;
-            flex: 1;
-        }
-
         .book-synopsis {
             color: #666;
             font-size: 0.9em;
             line-height: 1.5;
+            margin-top: 10px;
         }
 
         .book-title {
@@ -587,30 +582,20 @@
                 font-size: 1.8em;
             }
 
-            /* Book card mobile layout */
+            /* Book card - wrap synopsis to full width on mobile */
             .book-card {
-                flex-direction: column;
-                align-items: flex-start;
-                position: relative;
+                flex-wrap: wrap;
                 padding: 15px;
-            }
-
-            .book-card-top {
-                display: flex;
-                gap: 15px;
-                width: 100%;
-                margin-bottom: 10px;
             }
 
             .book-cover {
                 width: 70px;
                 height: 105px;
-                flex-shrink: 0;
             }
 
             .book-info {
                 flex: 1;
-                min-width: 0; /* Allows text truncation */
+                min-width: 0;
             }
 
             .book-title {
@@ -629,15 +614,14 @@
                 padding: 3px 8px;
             }
 
-            /* Synopsis full width on mobile */
+            /* Synopsis wraps to full width below on mobile */
             .book-synopsis {
                 width: 100%;
-                margin-top: 10px;
-                padding-top: 10px;
+                order: 3;
+                margin-top: 12px;
+                padding-top: 12px;
                 border-top: 1px solid #e8e8e3;
-                color: #666;
                 font-size: 0.9em;
-                line-height: 1.5;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
             }
@@ -1791,32 +1775,30 @@ Response must be valid JSON only.`
                 
                 return `
                 <div class="book-card">
-                    <div class="book-card-top">
-                        <div class="book-cover">
-                            ${book.coverImage 
-                                ? `<img src="${book.coverImage}" alt="${book.title} cover">` 
-                                : '📚'
-                            }
-                        </div>
-                        <div class="book-info">
-                            <div class="book-title">${book.title}</div>
-                            ${book.author ? `<div style="color: #666; font-size: 0.95em; margin-bottom: 8px;">by ${book.author}</div>` : ''}
-                            <div class="book-meta">
-                                <span class="genre-badge">${book.genre}</span>
-                                <span class="rating-display">${'★'.repeat(book.rating)}${'☆'.repeat(5-book.rating)}</span>
-                                <span>Finished: ${new Date(book.dateFinished).toLocaleDateString()}</span>
-                            </div>
-                            ${book.apiRating ? `<div style="color: #999; font-size: 0.85em; margin-top: 8px;">Goodreads: ${book.apiRating}</div>` : ''}
-                        </div>
+                    <div class="book-cover">
+                        ${book.coverImage 
+                            ? `<img src="${book.coverImage}" alt="${book.title} cover">` 
+                            : '📚'
+                        }
                     </div>
-                    ${fullSynopsis ? `
-                        <div class="book-synopsis">
-                            <span class="synopsis-text-${book.id}">${truncatedSynopsis}</span>
-                            ${shouldTruncate ? `
-                                <span class="show-more-link" data-book-id="${book.id}" data-full="${encodeURIComponent(fullSynopsis)}" data-truncated="${encodeURIComponent(truncatedSynopsis)}">show more</span>
-                            ` : ''}
+                    <div class="book-info">
+                        <div class="book-title">${book.title}</div>
+                        ${book.author ? `<div style="color: #666; font-size: 0.95em; margin-bottom: 8px;">by ${book.author}</div>` : ''}
+                        <div class="book-meta">
+                            <span class="genre-badge">${book.genre}</span>
+                            <span class="rating-display">${'★'.repeat(book.rating)}${'☆'.repeat(5-book.rating)}</span>
+                            <span>Finished: ${new Date(book.dateFinished).toLocaleDateString()}</span>
                         </div>
-                    ` : ''}
+                        ${fullSynopsis ? `
+                            <div class="book-synopsis">
+                                <span class="synopsis-text-${book.id}">${truncatedSynopsis}</span>
+                                ${shouldTruncate ? `
+                                    <span class="show-more-link" data-book-id="${book.id}" data-full="${encodeURIComponent(fullSynopsis)}" data-truncated="${encodeURIComponent(truncatedSynopsis)}">show more</span>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        ${book.apiRating ? `<div style="color: #999; font-size: 0.85em; margin-top: 8px;">Goodreads: ${book.apiRating}</div>` : ''}
+                    </div>
                     <button class="delete-btn-icon" data-book-id="${book.id}" title="Options">⋯</button>
                     <div class="book-menu" id="menu-${book.id}">
                         <button class="book-menu-item edit-item" data-book-id="${book.id}">Edit</button>
