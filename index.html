@@ -194,6 +194,18 @@
             flex: 1;
         }
 
+        .book-card-top {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .book-synopsis {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
         .book-title {
             font-size: 1.2em;
             font-weight: 600;
@@ -497,6 +509,219 @@
             font-weight: 600;
             color: #c17d4a;
         }
+
+        /* Mobile Responsive Styles */
+        
+        /* Tablets and below (768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 8px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .tab-content {
+                padding: 20px 15px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+
+            .stat-number {
+                font-size: 2em;
+            }
+
+            .form-group label {
+                font-size: 0.9em;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+
+        /* Mobile phones (480px and below) */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .header p {
+                font-size: 0.9em;
+            }
+
+            .tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab {
+                font-size: 0.9em;
+                padding: 12px 15px;
+                white-space: nowrap;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-number {
+                font-size: 1.8em;
+            }
+
+            /* Book card mobile layout */
+            .book-card {
+                flex-direction: column;
+                align-items: flex-start;
+                position: relative;
+                padding: 15px;
+            }
+
+            .book-card-top {
+                display: flex;
+                gap: 15px;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .book-cover {
+                width: 70px;
+                height: 105px;
+                flex-shrink: 0;
+            }
+
+            .book-info {
+                flex: 1;
+                min-width: 0; /* Allows text truncation */
+            }
+
+            .book-title {
+                font-size: 1.1em;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .book-meta {
+                font-size: 0.85em;
+                gap: 10px;
+            }
+
+            .genre-badge {
+                font-size: 0.75em;
+                padding: 3px 8px;
+            }
+
+            /* Synopsis full width on mobile */
+            .book-synopsis {
+                width: 100%;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #e8e8e3;
+                color: #666;
+                font-size: 0.9em;
+                line-height: 1.5;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .delete-btn-icon {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+            }
+
+            .book-menu {
+                right: 10px;
+                top: 35px;
+            }
+
+            /* Forms */
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            button {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            /* Modals */
+            .edit-modal-content {
+                width: 95%;
+                max-width: none;
+                margin: 10px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .edit-modal-header {
+                font-size: 1.1em;
+                padding: 15px;
+            }
+
+            /* Recommendations */
+            .recommendation-card {
+                padding: 15px;
+            }
+
+            .rec-title {
+                font-size: 1.1em;
+            }
+
+            /* Year filter alignment */
+            #library > div:first-child {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+
+            #library > div:first-child h2 {
+                font-size: 1.3em;
+            }
+
+            #library > div:first-child .form-group {
+                width: 100%;
+                margin: 0;
+            }
+
+            #library > div:first-child select {
+                width: 100%;
+            }
+        }
+
+        /* Very small screens (360px and below) */
+        @media (max-width: 360px) {
+            .book-title {
+                font-size: 1em;
+            }
+
+            .stat-number {
+                font-size: 1.5em;
+            }
+
+            .tab {
+                font-size: 0.85em;
+                padding: 10px 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -509,7 +734,7 @@
         <div class="tabs">
             <div class="tab active" data-tab="library">My Library</div>
             <div class="tab" data-tab="add">Add Book</div>
-            <div class="tab" data-tab="recommendations">Read Next</div>
+            <div class="tab" data-tab="recommendations">Get Recommendations</div>
         </div>
 
         <div class="content">
@@ -1566,30 +1791,32 @@ Response must be valid JSON only.`
                 
                 return `
                 <div class="book-card">
-                    <div class="book-cover">
-                        ${book.coverImage 
-                            ? `<img src="${book.coverImage}" alt="${book.title} cover">` 
-                            : '📚'
-                        }
-                    </div>
-                    <div class="book-info">
-                        <div class="book-title">${book.title}</div>
-                        ${book.author ? `<div style="color: #666; font-size: 0.95em; margin-bottom: 8px;">by ${book.author}</div>` : ''}
-                        <div class="book-meta">
-                            <span class="genre-badge">${book.genre}</span>
-                            <span class="rating-display">${'★'.repeat(book.rating)}${'☆'.repeat(5-book.rating)}</span>
-                            <span>Finished: ${new Date(book.dateFinished).toLocaleDateString()}</span>
+                    <div class="book-card-top">
+                        <div class="book-cover">
+                            ${book.coverImage 
+                                ? `<img src="${book.coverImage}" alt="${book.title} cover">` 
+                                : '📚'
+                            }
                         </div>
-                        ${fullSynopsis ? `
-                            <div style="color: #666; font-size: 0.9em; margin-top: 10px; line-height: 1.5;">
-                                <span class="synopsis-text-${book.id}">${truncatedSynopsis}</span>
-                                ${shouldTruncate ? `
-                                    <span class="show-more-link" data-book-id="${book.id}" data-full="${encodeURIComponent(fullSynopsis)}" data-truncated="${encodeURIComponent(truncatedSynopsis)}">show more</span>
-                                ` : ''}
+                        <div class="book-info">
+                            <div class="book-title">${book.title}</div>
+                            ${book.author ? `<div style="color: #666; font-size: 0.95em; margin-bottom: 8px;">by ${book.author}</div>` : ''}
+                            <div class="book-meta">
+                                <span class="genre-badge">${book.genre}</span>
+                                <span class="rating-display">${'★'.repeat(book.rating)}${'☆'.repeat(5-book.rating)}</span>
+                                <span>Finished: ${new Date(book.dateFinished).toLocaleDateString()}</span>
                             </div>
-                        ` : ''}
-                        ${book.apiRating ? `<div style="color: #999; font-size: 0.85em; margin-top: 8px;">Goodreads: ${book.apiRating}</div>` : ''}
+                            ${book.apiRating ? `<div style="color: #999; font-size: 0.85em; margin-top: 8px;">Goodreads: ${book.apiRating}</div>` : ''}
+                        </div>
                     </div>
+                    ${fullSynopsis ? `
+                        <div class="book-synopsis">
+                            <span class="synopsis-text-${book.id}">${truncatedSynopsis}</span>
+                            ${shouldTruncate ? `
+                                <span class="show-more-link" data-book-id="${book.id}" data-full="${encodeURIComponent(fullSynopsis)}" data-truncated="${encodeURIComponent(truncatedSynopsis)}">show more</span>
+                            ` : ''}
+                        </div>
+                    ` : ''}
                     <button class="delete-btn-icon" data-book-id="${book.id}" title="Options">⋯</button>
                     <div class="book-menu" id="menu-${book.id}">
                         <button class="book-menu-item edit-item" data-book-id="${book.id}">Edit</button>
