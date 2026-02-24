@@ -927,11 +927,305 @@
 
         .edit-modal-buttons button { flex: 1; }
 
+        /* ─── Book Detail Modal ─── */
+        .book-detail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(3px);
+            padding: 24px;
+        }
+        .book-detail-overlay.active { display: flex; }
+
+        .book-detail-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            gap: 24px;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 904px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1);
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-mid) transparent;
+        }
+
+        .book-detail-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            line-height: 0;
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+        .book-detail-close:hover { color: var(--cream); }
+
+        /* Left: book card column */
+        .bd-card-col {
+            background: var(--surface-2);
+            border: 1px solid var(--border-dim);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 12px 24px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .bd-cover {
+            width: 192px;
+            height: 291px;
+            background: var(--surface-3);
+            border-radius: 1px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 3px 3px 14px rgba(0,0,0,0.5);
+        }
+        .bd-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bd-stars { display: flex; gap: 4px; align-items: center; }
+
+        /* Right: info column */
+        .bd-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+            align-self: stretch;
+        }
+        #bdView, #bdEdit {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+        .bd-title {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--cream);
+            line-height: 40px;
+            letter-spacing: -0.16px;
+        }
+        .bd-author {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-muted);
+            line-height: 24px;
+        }
+        .bd-genre-badge {
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start;
+            padding: 4px 10px;
+            background: var(--gold-subtle);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--gold);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            line-height: 14px;
+        }
+        .bd-synopsis {
+            flex: 1;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text);
+            line-height: 24px;
+            border-bottom: 1px solid var(--border-dim);
+            padding-bottom: 12px;
+        }
+        .bd-footer {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .bd-meta {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-muted);
+            line-height: 24px;
+            white-space: nowrap;
+        }
+        .bd-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+        /* Buttons */
+        .bd-btn {
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 6px 12px;
+            min-height: 32px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+            line-height: 20px;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .bd-btn-delete { background: var(--surface-2); color: var(--text); }
+        .bd-btn-delete:hover { background: rgba(184,74,56,0.15); color: var(--red); }
+        .bd-btn-edit { background: var(--surface-4); color: var(--cream); min-width: 68px; }
+        .bd-btn-edit:hover { background: var(--border-mid); }
+        .bd-btn-cancel { background: var(--surface-2); color: var(--text-muted); }
+        .bd-btn-cancel:hover { background: var(--surface-3); color: var(--text); }
+        .bd-btn-save { background: var(--gold-dim); color: var(--cream); min-width: 120px; }
+        .bd-btn-save:hover { background: var(--gold); }
+
+        /* Edit mode inputs */
+        .bd-edit-input, .bd-edit-select, .bd-edit-textarea {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--cream);
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 16px;
+            line-height: 24px;
+            transition: border-color 0.15s;
+        }
+        .bd-edit-input { padding: 8px 12px; }
+        .bd-edit-input:focus,
+        .bd-edit-select:focus,
+        .bd-edit-textarea:focus { border-color: var(--gold-dim); outline: none; }
+        .bd-edit-title-input { font-size: 22px; font-weight: 600; letter-spacing: -0.16px; }
+        .bd-edit-select {
+            padding: 8px 32px 8px 12px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a08f77' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            cursor: pointer;
+        }
+        .bd-edit-select option { background: var(--surface-2); }
+        .bd-edit-textarea {
+            flex: 1;
+            min-height: 100px;
+            padding: 10px 12px;
+            resize: vertical;
+        }
+        .bd-edit-footer {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .bd-edit-date-wrap { display: flex; flex-direction: column; gap: 4px; }
+        .bd-edit-label {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .bd-star-interactive {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            line-height: 0;
+            transition: transform 0.1s;
+        }
+        .bd-star-interactive:hover { transform: scale(1.2); }
+
+        /* ─── Undo Toast ─── */
+        .undo-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--surface-3);
+            border: 1px solid var(--border-mid);
+            border-radius: 8px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 2000;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 15px;
+            color: var(--text);
+            min-width: 260px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+            transform: translateY(80px);
+            opacity: 0;
+            transition: transform 0.28s ease, opacity 0.28s ease;
+            pointer-events: none;
+        }
+        .undo-toast.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        .undo-toast-message { flex: 1; }
+        .undo-toast-btn {
+            background: none;
+            border: 1px solid var(--border-mid);
+            border-radius: 6px;
+            color: var(--gold-light);
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 4px 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+            flex-shrink: 0;
+            line-height: 20px;
+        }
+        .undo-toast-btn:hover { background: var(--surface-4); }
+
         /* ─── Responsive ─── */
         @media (max-width: 768px) {
             .content { padding: 24px 20px; }
 
             .books-list { grid-template-columns: repeat(3, 1fr); }
+
+            .book-detail-overlay { align-items: flex-end; padding: 0; }
+            .book-detail-modal {
+                flex-direction: column;
+                align-items: center;
+                border-radius: 12px 12px 0 0;
+                max-width: 100%;
+                max-height: 94vh;
+                overflow-y: auto;
+            }
+            .bd-info { width: 100%; }
+            .bd-footer { justify-content: center; }
+            .bd-meta { white-space: normal; text-align: center; }
+            .bd-actions { flex-direction: column-reverse; width: 100%; gap: 8px; }
+            .bd-btn-edit, .bd-btn-delete, .bd-btn-save, .bd-btn-cancel { width: 100%; min-width: unset; }
+            .bd-edit-footer { flex-direction: column; align-items: stretch; }
+            .bd-edit-footer .bd-actions { flex-direction: column; }
+            .book-detail-close { top: 16px; right: 16px; }
         }
 
         @media (max-width: 480px) {
@@ -1152,6 +1446,69 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Book Detail Modal -->
+    <div class="book-detail-overlay" id="bookDetailOverlay" role="dialog" aria-modal="true" aria-labelledby="bdTitle">
+        <div class="book-detail-modal">
+            <!-- Close -->
+            <button class="book-detail-close" id="bdClose" aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <!-- Left: book card -->
+            <div class="bd-card-col">
+                <div class="bd-cover" id="bdCoverEl">📚</div>
+                <div class="bd-stars" id="bdStarsEl" role="img" aria-label="Rating"></div>
+            </div>
+
+            <!-- Right: info -->
+            <div class="bd-info">
+
+                <!-- VIEW MODE -->
+                <div id="bdView">
+                    <div>
+                        <div class="bd-title" id="bdTitle"></div>
+                        <div class="bd-author" id="bdAuthor"></div>
+                    </div>
+                    <div class="bd-genre-badge" id="bdGenre"></div>
+                    <div class="bd-synopsis" id="bdSynopsis"></div>
+                    <div class="bd-footer">
+                        <span class="bd-meta" id="bdDateDisplay"></span>
+                        <span class="bd-meta" id="bdApiRatingDisplay"></span>
+                        <div class="bd-actions">
+                            <button class="bd-btn bd-btn-delete" id="bdDeleteBtn">Delete</button>
+                            <button class="bd-btn bd-btn-edit" id="bdEditBtn">Edit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EDIT MODE (hidden initially) -->
+                <div id="bdEdit" style="display:none;">
+                    <input type="text" class="bd-edit-input bd-edit-title-input" id="bdEditTitle" placeholder="Book title...">
+                    <input type="text" class="bd-edit-input" id="bdEditAuthor" placeholder="Author...">
+                    <select class="bd-edit-select" id="bdEditGenre"></select>
+                    <textarea class="bd-edit-textarea" id="bdEditSynopsis" placeholder="Synopsis..."></textarea>
+                    <div class="bd-edit-footer">
+                        <div class="bd-edit-date-wrap">
+                            <label class="bd-edit-label" for="bdEditDate">Date Finished</label>
+                            <input type="date" class="bd-edit-input" id="bdEditDate" style="width:auto;">
+                        </div>
+                        <div class="bd-actions">
+                            <button class="bd-btn bd-btn-cancel" id="bdCancelBtn">Cancel</button>
+                            <button class="bd-btn bd-btn-save" id="bdSaveBtn">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Undo Toast -->
+    <div class="undo-toast" id="undoToast" role="status" aria-live="polite">
+        <span class="undo-toast-message" id="undoMsg">Book deleted</span>
+        <button class="undo-toast-btn" id="undoBtnEl">Undo</button>
     </div>
 
     <!-- Supabase Client -->
@@ -1425,50 +1782,50 @@
         // Generate recommendations button
         document.getElementById('generateRecsBtn').addEventListener('click', generateRecommendations);
 
-        // Delete button delegation and menu handling
+        // Book card click delegation: ⋯ menu, edit/delete items, and card open
         document.getElementById('booksList').addEventListener('click', async function(e) {
-            // Toggle menu (use closest so clicks on the SVG inside the button still register)
+
+            // ⋯ Options button — toggle menu
             const menuBtn = e.target.closest('.delete-btn-icon');
             if (menuBtn) {
                 const bookId = menuBtn.dataset.bookId;
                 const menu = document.getElementById(`menu-${bookId}`);
-
-                // Close all other menus
                 document.querySelectorAll('.book-menu').forEach(m => {
                     if (m !== menu) m.classList.remove('active');
                 });
-
                 menu.classList.toggle('active');
                 e.stopPropagation();
+                return;
             }
 
-            // Handle edit
-            if (e.target.classList.contains('edit-item')) {
-                const bookId = parseInt(e.target.dataset.bookId);
-                openEditModal(bookId);
+            // ⋯ menu → Edit (opens detail modal in edit mode)
+            const editBtn = e.target.closest('.edit-item');
+            if (editBtn) {
+                const bookId = parseInt(editBtn.dataset.bookId);
+                openBookModalInEditMode(bookId);
                 document.getElementById(`menu-${bookId}`).classList.remove('active');
+                return;
             }
 
-            // Handle delete
-            if (e.target.classList.contains('delete-item')) {
-                const bookId = parseInt(e.target.dataset.bookId);
-                await deleteBook(bookId);
-                document.getElementById(`menu-${bookId}`).classList.remove('active');
-            }
-
-            // Handle show more/less for synopsis
-            if (e.target.classList.contains('show-more-link')) {
-                const bookId = e.target.dataset.bookId;
-                const synopsisSpan = document.querySelector(`.synopsis-text-${bookId}`);
-                const isExpanded = e.target.textContent === 'show less';
-
-                if (isExpanded) {
-                    synopsisSpan.textContent = decodeURIComponent(e.target.dataset.truncated);
-                    e.target.textContent = 'show more';
-                } else {
-                    synopsisSpan.textContent = decodeURIComponent(e.target.dataset.full);
-                    e.target.textContent = 'show less';
+            // ⋯ menu → Delete (with undo toast)
+            const deleteBtn = e.target.closest('.delete-item');
+            if (deleteBtn) {
+                const bookId = parseInt(deleteBtn.dataset.bookId);
+                const book   = books.find(b => b.id === bookId);
+                if (book) {
+                    deletedBookCache = { ...book };
+                    document.getElementById(`menu-${bookId}`).classList.remove('active');
+                    await deleteBook(bookId);
+                    showUndoToast(deletedBookCache);
                 }
+                return;
+            }
+
+            // Click on card body → open detail modal
+            const card = e.target.closest('.book-card');
+            if (card && !e.target.closest('.book-menu')) {
+                const bookId = parseInt(card.dataset.bookId);
+                openBookModal(bookId);
             }
         });
 
@@ -1485,6 +1842,12 @@
         let currentEditingBookId = null;
         let editRating = 0;
         let editCoverImage = null;
+
+        // ─── Book Detail Modal state ───
+        let currentDetailBookId = null;
+        let detailEditRating = 0;
+        let undoTimeoutId = null;
+        let deletedBookCache = null;
 
         // Edit modal rating stars
         document.querySelectorAll('.edit-star').forEach(star => {
@@ -1600,6 +1963,232 @@
             populateYearFilter();
             renderBooks();
             renderStats();
+        });
+
+        // ─────────────────────────────────────────────
+        // BOOK DETAIL MODAL – helpers & functions
+        // ─────────────────────────────────────────────
+
+        // Render star SVGs; interactive=true wraps each in a <button>
+        function renderBdStars(rating, interactive) {
+            const starFill  = `<svg class="star-icon star-fill"  xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.5"  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+            const starEmpty = `<svg class="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+            return [1,2,3,4,5].map(i => {
+                const svg = i <= rating ? starFill : starEmpty;
+                return interactive
+                    ? `<button class="bd-star-interactive" data-star="${i}" aria-label="Rate ${i} out of 5">${svg}</button>`
+                    : svg;
+            }).join('');
+        }
+
+        // Format YYYY-MM-DD → DD-MM-YYYY for display
+        function formatDateDisplay(dateStr) {
+            if (!dateStr) return '';
+            const p = dateStr.split('-');
+            return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : dateStr;
+        }
+
+        // Populate view-mode fields from book data
+        function populateBookModalView(book) {
+            const coverEl = document.getElementById('bdCoverEl');
+            coverEl.innerHTML = book.coverImage
+                ? `<img src="${book.coverImage}" alt="${book.title}" loading="lazy">`
+                : '📚';
+
+            const starsEl = document.getElementById('bdStarsEl');
+            starsEl.innerHTML = renderBdStars(book.rating, false);
+            starsEl.setAttribute('aria-label', `Rating: ${book.rating} out of 5`);
+
+            document.getElementById('bdTitle').textContent = book.title;
+            document.getElementById('bdAuthor').textContent = book.author ? 'by ' + book.author : '';
+            document.getElementById('bdGenre').textContent  = book.genre  || '';
+            document.getElementById('bdSynopsis').textContent = book.synopsis || 'No synopsis available.';
+
+            document.getElementById('bdDateDisplay').textContent =
+                book.dateFinished ? 'Finished on ' + formatDateDisplay(book.dateFinished) : '';
+            document.getElementById('bdApiRatingDisplay').textContent =
+                book.apiRating ? 'Goodreads rating — ' + book.apiRating : '';
+        }
+
+        // Open the detail modal in VIEW mode
+        function openBookModal(bookId) {
+            const book = books.find(b => b.id === bookId);
+            if (!book) return;
+            currentDetailBookId = bookId;
+            detailEditRating    = book.rating;
+
+            populateBookModalView(book);
+            document.getElementById('bdView').style.display = 'flex';
+            document.getElementById('bdEdit').style.display = 'none';
+            document.getElementById('bookDetailOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Open the detail modal immediately in EDIT mode
+        function openBookModalInEditMode(bookId) {
+            openBookModal(bookId);
+            enterDetailEditMode();
+        }
+
+        // Close the detail modal
+        function closeBookModal() {
+            document.getElementById('bookDetailOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+            currentDetailBookId = null;
+            detailEditRating    = 0;
+        }
+
+        // Switch the open modal from view → edit mode
+        function enterDetailEditMode() {
+            const book = books.find(b => b.id === currentDetailBookId);
+            if (!book) return;
+            detailEditRating = book.rating;
+
+            document.getElementById('bdEditTitle').value    = book.title;
+            document.getElementById('bdEditAuthor').value   = book.author   || '';
+            document.getElementById('bdEditSynopsis').value = book.synopsis || '';
+            document.getElementById('bdEditDate').value     = book.dateFinished || '';
+
+            // Populate genre dropdown from all known genres
+            const genreSelect = document.getElementById('bdEditGenre');
+            genreSelect.innerHTML = '';
+            getAllGenres().forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g; opt.textContent = g;
+                if (g === book.genre) opt.selected = true;
+                genreSelect.appendChild(opt);
+            });
+
+            // Stars become interactive
+            const starsEl = document.getElementById('bdStarsEl');
+            starsEl.innerHTML = renderBdStars(detailEditRating, true);
+            starsEl.removeAttribute('aria-label');
+
+            document.getElementById('bdView').style.display = 'none';
+            document.getElementById('bdEdit').style.display = 'flex';
+        }
+
+        // Cancel edit → back to view mode
+        function exitDetailEditMode() {
+            const book = books.find(b => b.id === currentDetailBookId);
+            if (!book) return;
+            const starsEl = document.getElementById('bdStarsEl');
+            starsEl.innerHTML = renderBdStars(book.rating, false);
+            starsEl.setAttribute('aria-label', `Rating: ${book.rating} out of 5`);
+            document.getElementById('bdEdit').style.display = 'none';
+            document.getElementById('bdView').style.display = 'flex';
+            detailEditRating = book.rating;
+        }
+
+        // Save changes from edit mode
+        async function saveDetailChanges() {
+            const bookIndex = books.findIndex(b => b.id === currentDetailBookId);
+            if (bookIndex === -1) return;
+
+            const title       = document.getElementById('bdEditTitle').value.trim();
+            const author      = document.getElementById('bdEditAuthor').value.trim();
+            const genre       = document.getElementById('bdEditGenre').value;
+            const synopsis    = document.getElementById('bdEditSynopsis').value.trim();
+            const dateFinished= document.getElementById('bdEditDate').value;
+            if (!title || !dateFinished) return;
+
+            books[bookIndex] = {
+                ...books[bookIndex],
+                title, author, genre, synopsis,
+                rating: detailEditRating || books[bookIndex].rating,
+                dateFinished
+            };
+
+            try {
+                await updateBookInSupabase(books[bookIndex]);
+                closeBookModal();
+                populateYearFilter();
+                renderBooks();
+                renderStats();
+            } catch (err) {
+                console.error('Failed to save changes:', err);
+            }
+        }
+
+        // Delete from the detail modal (with undo)
+        async function deleteBookFromDetail() {
+            const bookId = currentDetailBookId;
+            const book   = books.find(b => b.id === bookId);
+            if (!book) return;
+            deletedBookCache = { ...book };
+            closeBookModal();
+            await deleteBook(bookId);
+            showUndoToast(deletedBookCache);
+        }
+
+        // Show undo toast
+        function showUndoToast(deletedBook) {
+            clearTimeout(undoTimeoutId);
+            const title = deletedBook.title.length > 30
+                ? deletedBook.title.slice(0, 28) + '…'
+                : deletedBook.title;
+            document.getElementById('undoMsg').textContent = `"${title}" deleted`;
+            document.getElementById('undoToast').classList.add('active');
+            undoTimeoutId = setTimeout(() => {
+                hideUndoToast();
+                deletedBookCache = null;
+            }, 5000);
+        }
+
+        function hideUndoToast() {
+            document.getElementById('undoToast').classList.remove('active');
+        }
+
+        // Undo a recent deletion
+        async function undoDelete() {
+            if (!deletedBookCache) return;
+            const book = { ...deletedBookCache };
+            clearTimeout(undoTimeoutId);
+            hideUndoToast();
+            deletedBookCache = null;
+            try {
+                await saveBookToSupabase(book);   // re-inserts; gets a new Supabase id
+                books.push(book);
+                populateYearFilter();
+                renderBooks();
+                renderStats();
+            } catch (err) {
+                console.error('Failed to undo delete:', err);
+            }
+        }
+
+        // ─── Detail modal event listeners ───
+
+        document.getElementById('bdClose').addEventListener('click', closeBookModal);
+
+        // Click outside modal content to close
+        document.getElementById('bookDetailOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeBookModal();
+        });
+
+        document.getElementById('bdEditBtn').addEventListener('click', enterDetailEditMode);
+        document.getElementById('bdDeleteBtn').addEventListener('click', deleteBookFromDetail);
+        document.getElementById('bdCancelBtn').addEventListener('click', exitDetailEditMode);
+        document.getElementById('bdSaveBtn').addEventListener('click', saveDetailChanges);
+        document.getElementById('undoBtnEl').addEventListener('click', undoDelete);
+
+        // Star click delegation in edit mode
+        document.getElementById('bdStarsEl').addEventListener('click', function(e) {
+            const starBtn = e.target.closest('.bd-star-interactive');
+            if (!starBtn) return;
+            detailEditRating = parseInt(starBtn.dataset.star);
+            this.innerHTML = renderBdStars(detailEditRating, true);
+        });
+
+        // ESC: exit edit mode or close modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Escape') return;
+            if (!document.getElementById('bookDetailOverlay').classList.contains('active')) return;
+            if (document.getElementById('bdEdit').style.display !== 'none') {
+                exitDetailEditMode();
+            } else {
+                closeBookModal();
+            }
         });
 
         // Add book button
@@ -2055,7 +2644,7 @@ Response must be valid JSON only.`
                 const stars = [1,2,3,4,5].map(i => i <= book.rating ? starFill : starEmpty).join('');
 
                 return `
-                <div class="book-card" title="${book.title}${book.author ? ' — ' + book.author : ''}">
+                <div class="book-card" data-book-id="${book.id}" title="${book.title}${book.author ? ' — ' + book.author : ''}">
                     <div class="book-cover">
                         ${book.coverImage
                             ? `<img src="${book.coverImage}" alt="${book.title}" loading="lazy">`
