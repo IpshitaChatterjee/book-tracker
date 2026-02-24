@@ -45,23 +45,35 @@
             font-size: 17px;
             background: var(--bg);
             min-height: 100vh;
-            padding: 28px 16px;
+            padding: 0;
             color: var(--text);
             position: relative;
         }
 
         /* ─── Container ─── */
+        /* Full-width flush layout for ≤1280px */
         .container {
-            max-width: 920px;
-            margin: 0 auto;
+            width: 100%;
             background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            box-shadow:
-                0 0 0 1px var(--border-dim),
-                0 12px 48px rgba(0,0,0,0.7),
-                0 2px 0 var(--border-mid);
+            border: none;
+            border-radius: 0;
             overflow: hidden;
+            min-height: 100vh;
+        }
+
+        /* XL Desktop (>1280px): centered 1280px column matching Figma node 10-679 */
+        @media (min-width: 1281px) {
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+            }
+
+            .container {
+                max-width: 1280px;
+                border: 1px solid var(--border-dim);
+                min-height: 100vh;
+            }
         }
 
         /* ─── Header ─── */
@@ -922,8 +934,6 @@
 
         /* ─── Responsive ─── */
         @media (max-width: 768px) {
-            body { padding: 10px 8px; }
-
             .content { padding: 24px 20px; }
 
             .stats { grid-template-columns: repeat(3, 1fr); }
