@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Reading Journey</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* ─── Design Tokens ─── */
         :root {
@@ -66,9 +67,9 @@
         /* ─── Header ─── */
         .header {
             background: var(--surface-2);
-            padding: 44px 40px 34px;
+            padding: 27px 22px;
             text-align: center;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--surface-4);
             position: relative;
             overflow: hidden;
         }
@@ -84,28 +85,22 @@
 
         .header-eyebrow {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: 0.78em;
+            font-size: 10px;
             font-weight: 400;
-            letter-spacing: 0.22em;
+            letter-spacing: 3.52px;
             text-transform: uppercase;
-            color: var(--gold);
-            margin-bottom: 14px;
+            color: var(--gold-light);
+            margin-bottom: 6px;
         }
 
         .header h1 {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 2.75em;
-            font-weight: 700;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 32px;
+            font-weight: 600;
             color: var(--cream);
-            letter-spacing: -0.02em;
-            line-height: 1.1;
+            letter-spacing: -0.16px;
+            line-height: 40px;
             margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.05em;
-            color: var(--text-muted);
-            margin-bottom: 22px;
         }
 
         .header-ornament {
@@ -140,13 +135,13 @@
 
         .tab {
             flex: 1;
-            padding: 17px 20px;
+            padding: 17px 24px;
             text-align: center;
             cursor: pointer;
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: 0.88em;
+            font-size: 15px;
             font-weight: 400;
-            letter-spacing: 0.1em;
+            letter-spacing: 2px;
             text-transform: uppercase;
             color: var(--text-muted);
             border-bottom: 2px solid transparent;
@@ -168,7 +163,7 @@
 
         .tab.active {
             color: var(--gold);
-            border-bottom-color: var(--gold);
+            border-bottom-color: var(--gold-light);
             background: var(--gold-glow);
         }
 
@@ -209,8 +204,24 @@
 
         /* ─── Year Filter ─── */
         #yearFilter {
-            padding: 9px 12px;
-            font-size: 0.9em;
+            width: 147px;
+            height: 40px;
+            padding: 8px 12px 8px 12px;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 16px;
+            line-height: 24px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text);
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            /* chevron icon matching Figma */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4.5 6.5L8 10L11.5 6.5' stroke='%23a08f77' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 32px;
         }
 
         /* ─── Stats ─── */
@@ -915,19 +926,14 @@
 
             .content { padding: 24px 20px; }
 
-            .header { padding: 30px 22px 26px; }
-
-            .header h1 { font-size: 2em; }
-
             .stats { grid-template-columns: repeat(3, 1fr); }
 
             .stat-number { font-size: 1.8em; }
         }
 
         @media (max-width: 480px) {
-            .header h1 { font-size: 1.65em; }
-
-            .header p { font-size: 0.95em; }
+            /* Dropdown goes full-width on mobile (matches Figma Phone frame) */
+            #yearFilter { width: 100%; }
 
             .tabs {
                 overflow-x: auto;
@@ -1010,7 +1016,6 @@
         <div class="header">
             <div class="header-eyebrow">Personal Reading Ledger</div>
             <h1>My Reading Journey</h1>
-            <p>Track your books, discover your next great read</p>
             <div class="header-ornament">
                 <div class="ornament-line"></div>
                 <div class="ornament-diamond"></div>
@@ -1020,9 +1025,9 @@
 
         <!-- Tabs -->
         <div class="tabs" role="tablist">
-            <div class="tab active" data-tab="library" role="tab" tabindex="0"><span class="tab-num">I.</span> Library</div>
-            <div class="tab" data-tab="add" role="tab" tabindex="0"><span class="tab-num">II.</span> Add Book</div>
-            <div class="tab" data-tab="recommendations" role="tab" tabindex="0"><span class="tab-num">III.</span> Read Next</div>
+            <div class="tab active" data-tab="library" role="tab" tabindex="0">Library</div>
+            <div class="tab" data-tab="add" role="tab" tabindex="0">Add New</div>
+            <div class="tab" data-tab="recommendations" role="tab" tabindex="0">Next</div>
         </div>
 
         <div class="content">
@@ -1031,8 +1036,8 @@
             <div id="library" class="tab-content active">
                 <div class="section-header">
                     <h2 class="section-title">Your Books</h2>
-                    <div class="form-group" style="margin: 0; min-width: 150px;">
-                        <select id="yearFilter" style="padding: 9px 12px;">
+                    <div class="form-group" style="margin: 0;">
+                        <select id="yearFilter">
                             <option value="all">All Years</option>
                         </select>
                     </div>
