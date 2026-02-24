@@ -7,7 +7,7 @@
     <title>My Reading Journey</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* ─── Design Tokens ─── */
         :root {
@@ -181,7 +181,7 @@
 
         /* ─── Content ─── */
         .content {
-            padding: 36px 40px;
+            padding: 24px 32px;
         }
 
         .tab-content {
@@ -201,9 +201,9 @@
         /* ─── Section headers ─── */
         .section-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
 
         .section-title {
@@ -238,125 +238,105 @@
 
         /* ─── Stats ─── */
         .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: var(--border-dim);
-            margin-bottom: 30px;
-            border: 1px solid var(--border-dim);
-            border-radius: 2px;
+            display: flex;
+            border-radius: 4px;
             overflow: hidden;
+            margin-bottom: 24px;
         }
 
         .stat-card {
+            flex: 1;
             background: var(--surface-2);
-            padding: 22px 18px;
+            padding: 24px 18px;
             text-align: center;
-            position: relative;
-        }
-
-        /* Gold top micro-accent */
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 50%; transform: translateX(-50%);
-            width: 32px; height: 2px;
-            background: var(--gold-dim);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
         }
 
         .stat-number {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.3em;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 24px;
             font-weight: 700;
             color: var(--cream);
-            margin-bottom: 6px;
-            line-height: 1;
-            letter-spacing: -0.02em;
+            line-height: 28px;
+            letter-spacing: -0.32px;
         }
 
         .stat-label {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: 0.75em;
+            font-size: 12px;
             font-weight: 400;
-            letter-spacing: 0.14em;
+            line-height: 14px;
+            letter-spacing: 2px;
             text-transform: uppercase;
             color: var(--text-muted);
         }
 
-        /* ─── Books List ─── */
+        /* ─── Books List — 5-col portrait grid ─── */
         .books-list {
             display: grid;
-            gap: 10px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 24px;
         }
 
-        /* ─── Book Card ─── */
+        /* ─── Book Card — portrait tile ─── */
         .book-card {
-            background: var(--surface-2);
-            padding: 20px 18px;
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-left: 2px solid var(--gold-dim);
-            border-radius: 2px;
+            border-radius: 4px;
+            overflow: hidden;
             display: flex;
-            gap: 18px;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 12px 24px;
+            gap: 16px;
             position: relative;
-            transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
-        }
-
-        /* Corner bracket decorations (appear on hover) */
-        .book-card::before,
-        .book-card::after {
-            content: '';
-            position: absolute;
-            width: 10px; height: 10px;
-            border-color: var(--border-accent);
-            border-style: solid;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .book-card::before {
-            top: 5px; left: 5px;
-            border-width: 1px 0 0 1px;
-        }
-
-        .book-card::after {
-            bottom: 5px; right: 5px;
-            border-width: 0 1px 1px 0;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .book-card:hover {
-            background: var(--surface-3);
             border-color: var(--border-mid);
-            border-left-color: var(--gold);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.35), inset 0 0 60px var(--gold-glow);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.45);
         }
 
-        .book-card:hover::before,
-        .book-card:hover::after {
-            opacity: 1;
-        }
-
-        /* ─── Book Cover ─── */
+        /* ─── Book Cover — 2:3 aspect ratio ─── */
         .book-cover {
-            flex-shrink: 0;
-            width: 74px;
-            height: 112px;
+            width: 100%;
+            aspect-ratio: 192 / 291;
             border-radius: 1px;
             overflow: hidden;
-            background: var(--surface-4);
-            border: 1px solid var(--border-mid);
+            background: var(--surface-3);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
+            font-size: 32px;
             box-shadow: 3px 3px 14px rgba(0,0,0,0.5);
-            color: var(--text-dim);
+            flex-shrink: 0;
         }
 
         .book-cover img {
             width: 100%; height: 100%;
             object-fit: cover;
+            display: block;
         }
+
+        /* ─── Book Card Stars ─── */
+        .book-card-stars {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .star-icon { display: block; }
+
+        .star-fill { color: var(--gold); }
+
+        .star-empty { color: var(--border-mid); }
 
         /* ─── Book Info ─── */
         .book-info {
@@ -481,7 +461,7 @@
 
         .delete-btn-icon {
             position: absolute;
-            top: 13px; right: 13px;
+            top: 6px; right: 6px;
             width: 26px; height: 26px;
             border-radius: 50%;
             background: transparent;
@@ -505,7 +485,7 @@
 
         .book-menu {
             position: absolute;
-            top: 40px; right: 13px;
+            top: 32px; right: 6px;
             background: var(--surface-3);
             border: 1px solid var(--border-mid);
             border-radius: 2px;
@@ -951,9 +931,7 @@
         @media (max-width: 768px) {
             .content { padding: 24px 20px; }
 
-            .stats { grid-template-columns: repeat(3, 1fr); }
-
-            .stat-number { font-size: 1.8em; }
+            .books-list { grid-template-columns: repeat(3, 1fr); }
         }
 
         @media (max-width: 480px) {
@@ -971,40 +949,9 @@
                 white-space: nowrap;
             }
 
-            .stats { grid-template-columns: 1fr; }
-
-            .stat-number { font-size: 1.75em; }
-
-            .book-card {
-                flex-wrap: wrap;
-                padding: 15px;
-            }
-
-            .book-cover { width: 68px; height: 102px; }
-
-            .book-info { flex: 1; min-width: 0; }
-
-            .book-title { font-size: 1.05em; }
-
-            .book-meta { font-size: 0.88em; gap: 8px; }
-
-            .genre-badge { font-size: 0.65em; padding: 2px 7px; }
-
-            .book-synopsis {
-                margin-left: -82px;
-                width: calc(100% + 82px);
-                margin-top: 12px;
-                padding-top: 12px;
-                border-top: 1px solid var(--border-dim);
-            }
-
-            .delete-btn-icon { top: 10px; right: 10px; }
-
-            .book-menu { right: 10px; top: 36px; }
+            .books-list { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
             .form-group { margin-bottom: 16px; }
-
-            button { padding: 12px 20px; }
 
             .edit-modal-content {
                 width: 95%;
@@ -1028,9 +975,8 @@
         }
 
         @media (max-width: 360px) {
-            .book-title { font-size: 1em; }
-            .stat-number { font-size: 1.5em; }
             .tab { font-size: 0.63em; padding: 11px 10px; }
+            .books-list { gap: 8px; }
         }
     </style>
 </head>
@@ -1481,9 +1427,10 @@
 
         // Delete button delegation and menu handling
         document.getElementById('booksList').addEventListener('click', async function(e) {
-            // Toggle menu
-            if (e.target.classList.contains('delete-btn-icon')) {
-                const bookId = e.target.dataset.bookId;
+            // Toggle menu (use closest so clicks on the SVG inside the button still register)
+            const menuBtn = e.target.closest('.delete-btn-icon');
+            if (menuBtn) {
+                const bookId = menuBtn.dataset.bookId;
                 const menu = document.getElementById(`menu-${bookId}`);
 
                 // Close all other menus
@@ -1527,7 +1474,7 @@
 
         // Close menus when clicking outside
         document.addEventListener('click', function(e) {
-            if (!e.target.closest('.book-menu') && !e.target.classList.contains('delete-btn-icon')) {
+            if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
                 document.querySelectorAll('.book-menu').forEach(menu => {
                     menu.classList.remove('active');
                 });
@@ -2055,16 +2002,16 @@ Response must be valid JSON only.`
 
             document.getElementById('stats').innerHTML = `
                 <div class="stat-card">
+                    <div class="stat-number">${totalBooks > 0 ? favoriteGenre : '—'}</div>
+                    <div class="stat-label">Top Genre</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-number">${totalBooks}</div>
                     <div class="stat-label">Books Read</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${avgRating}</div>
                     <div class="stat-label">Avg Rating</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">${totalBooks > 0 ? favoriteGenre : 'N/A'}</div>
-                    <div class="stat-label">Top Genre</div>
                 </div>
             `;
         }
@@ -2100,43 +2047,27 @@ Response must be valid JSON only.`
                 return new Date(b.dateFinished) - new Date(a.dateFinished);
             });
 
+            // Geist star SVG helpers
+            const starFill  = `<svg class="star-icon star-fill"  xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.5"  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+            const starEmpty = `<svg class="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+
             booksList.innerHTML = sortedBooks.map(book => {
-                // Truncate synopsis to approximately 2 lines (about 150 characters)
-                const fullSynopsis = book.synopsis || '';
-                const shouldTruncate = fullSynopsis.length > 150;
-                const truncatedSynopsis = shouldTruncate
-                    ? fullSynopsis.substring(0, 150).trim() + '...'
-                    : fullSynopsis;
+                const stars = [1,2,3,4,5].map(i => i <= book.rating ? starFill : starEmpty).join('');
 
                 return `
-                <div class="book-card">
+                <div class="book-card" title="${book.title}${book.author ? ' — ' + book.author : ''}">
                     <div class="book-cover">
                         ${book.coverImage
-                            ? `<img src="${book.coverImage}" alt="${book.title} cover">`
+                            ? `<img src="${book.coverImage}" alt="${book.title}" loading="lazy">`
                             : '📚'
                         }
                     </div>
-                    <div class="book-info">
-                        <div class="book-title">${book.title}</div>
-                        ${book.author ? `<div class="book-author">by ${book.author}</div>` : ''}
-                        <div class="book-meta">
-                            <span class="genre-badge">${book.genre}</span>
-                            <span class="rating-display">${'★'.repeat(book.rating)}${'☆'.repeat(5-book.rating)}</span>
-                            <span class="book-date">Finished: ${new Date(book.dateFinished).toLocaleDateString()}</span>
-                        </div>
-                        ${book.apiRating ? `<div class="book-goodreads">Goodreads: ${book.apiRating}</div>` : ''}
-                        ${fullSynopsis ? `
-                            <div class="book-synopsis">
-                                <span class="synopsis-text-${book.id}">${truncatedSynopsis}</span>
-                                ${shouldTruncate ? `
-                                    <span class="show-more-link" data-book-id="${book.id}" data-full="${encodeURIComponent(fullSynopsis)}" data-truncated="${encodeURIComponent(truncatedSynopsis)}">show more</span>
-                                ` : ''}
-                            </div>
-                        ` : ''}
+                    <div class="book-card-stars" aria-label="Rating: ${book.rating} out of 5">
+                        ${stars}
                     </div>
                     <button class="delete-btn-icon" data-book-id="${book.id}" title="Options">
                         <!-- Geist: MoreHorizontal -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
                     </button>
                     <div class="book-menu" id="menu-${book.id}">
                         <button class="book-menu-item edit-item" data-book-id="${book.id}">
