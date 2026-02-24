@@ -1002,6 +1002,27 @@
             box-shadow: 3px 3px 14px rgba(0,0,0,0.5);
         }
         .bd-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bd-cover-wrap { position: relative; flex-shrink: 0; }
+        .bd-cover-edit-btn {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.62);
+            color: var(--cream);
+            font-size: 11px;
+            font-family: 'EB Garamond', Georgia, serif;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 0;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-radius: 0 0 1px 1px;
+        }
+        .bd-cover-edit-btn:hover { background: rgba(0,0,0,0.82); }
+        .bd-card-col.editing .bd-cover-edit-btn { display: flex; }
         .bd-stars { display: flex; gap: 4px; align-items: center; }
 
         /* Right: info column */
@@ -1095,14 +1116,11 @@
             white-space: nowrap;
             font-family: inherit;
         }
+        .bd-btn:hover  { filter: brightness(1.12); }
         .bd-btn-delete { background: var(--surface-2); color: var(--text); }
-        .bd-btn-delete:hover { background: rgba(184,74,56,0.15); color: var(--red); }
-        .bd-btn-edit { background: var(--surface-4); color: var(--cream); min-width: 68px; }
-        .bd-btn-edit:hover { background: var(--border-mid); }
-        .bd-btn-cancel { background: var(--surface-2); color: var(--text-muted); }
-        .bd-btn-cancel:hover { background: var(--surface-3); color: var(--text); }
-        .bd-btn-save { background: var(--gold-dim); color: var(--cream); min-width: 120px; }
-        .bd-btn-save:hover { background: var(--gold); }
+        .bd-btn-edit   { background: var(--surface-4); color: var(--cream); min-width: 68px; }
+        .bd-btn-cancel { background: var(--surface-2); color: var(--text); }
+        .bd-btn-save   { background: var(--surface-4); color: var(--cream); min-width: 120px; }
 
         /* Edit mode inputs */
         .bd-edit-input, .bd-edit-select, .bd-edit-textarea {
@@ -1458,7 +1476,14 @@
 
             <!-- Left: book card -->
             <div class="bd-card-col">
-                <div class="bd-cover" id="bdCoverEl">📚</div>
+                <div class="bd-cover-wrap">
+                    <div class="bd-cover" id="bdCoverEl">📚</div>
+                    <label class="bd-cover-edit-btn" for="bdCoverInput" title="Change cover">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Change
+                    </label>
+                    <input type="file" id="bdCoverInput" accept="image/png,image/jpeg,image/jpg" style="display:none;">
+                </div>
                 <div class="bd-stars" id="bdStarsEl" role="img" aria-label="Rating"></div>
             </div>
 
@@ -1844,10 +1869,11 @@
         let editCoverImage = null;
 
         // ─── Book Detail Modal state ───
-        let currentDetailBookId = null;
-        let detailEditRating = 0;
-        let undoTimeoutId = null;
-        let deletedBookCache = null;
+        let currentDetailBookId   = null;
+        let detailEditRating      = 0;
+        let detailEditCoverImage  = null;
+        let undoTimeoutId         = null;
+        let deletedBookCache      = null;
 
         // Edit modal rating stars
         document.querySelectorAll('.edit-star').forEach(star => {
@@ -2033,16 +2059,19 @@
         // Close the detail modal
         function closeBookModal() {
             document.getElementById('bookDetailOverlay').classList.remove('active');
+            document.querySelector('.bd-card-col').classList.remove('editing');
             document.body.style.overflow = '';
-            currentDetailBookId = null;
-            detailEditRating    = 0;
+            currentDetailBookId  = null;
+            detailEditRating     = 0;
+            detailEditCoverImage = null;
         }
 
         // Switch the open modal from view → edit mode
         function enterDetailEditMode() {
             const book = books.find(b => b.id === currentDetailBookId);
             if (!book) return;
-            detailEditRating = book.rating;
+            detailEditRating     = book.rating;
+            detailEditCoverImage = book.coverImage || null;
 
             document.getElementById('bdEditTitle').value    = book.title;
             document.getElementById('bdEditAuthor').value   = book.author   || '';
@@ -2064,6 +2093,9 @@
             starsEl.innerHTML = renderBdStars(detailEditRating, true);
             starsEl.removeAttribute('aria-label');
 
+            // Show cover-change overlay
+            document.querySelector('.bd-card-col').classList.add('editing');
+
             document.getElementById('bdView').style.display = 'none';
             document.getElementById('bdEdit').style.display = 'flex';
         }
@@ -2075,6 +2107,11 @@
             const starsEl = document.getElementById('bdStarsEl');
             starsEl.innerHTML = renderBdStars(book.rating, false);
             starsEl.setAttribute('aria-label', `Rating: ${book.rating} out of 5`);
+            // Restore cover to original (discard changes)
+            document.getElementById('bdCoverEl').innerHTML = book.coverImage
+                ? `<img src="${book.coverImage}" alt="${book.title}" loading="lazy">` : '📚';
+            document.querySelector('.bd-card-col').classList.remove('editing');
+            detailEditCoverImage = null;
             document.getElementById('bdEdit').style.display = 'none';
             document.getElementById('bdView').style.display = 'flex';
             detailEditRating = book.rating;
@@ -2096,7 +2133,10 @@
                 ...books[bookIndex],
                 title, author, genre, synopsis,
                 rating: detailEditRating || books[bookIndex].rating,
-                dateFinished
+                dateFinished,
+                coverImage: detailEditCoverImage !== null
+                    ? detailEditCoverImage
+                    : books[bookIndex].coverImage
             };
 
             try {
@@ -2171,6 +2211,21 @@
         document.getElementById('bdCancelBtn').addEventListener('click', exitDetailEditMode);
         document.getElementById('bdSaveBtn').addEventListener('click', saveDetailChanges);
         document.getElementById('undoBtnEl').addEventListener('click', undoDelete);
+
+        // Cover image file picker in edit mode
+        document.getElementById('bdCoverInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(evt) {
+                detailEditCoverImage = await compressImage(evt.target.result);
+                document.getElementById('bdCoverEl').innerHTML =
+                    `<img src="${detailEditCoverImage}" alt="Cover preview">`;
+            };
+            reader.readAsDataURL(file);
+            // Reset so same file can be re-selected if needed
+            this.value = '';
+        });
 
         // Star click delegation in edit mode
         document.getElementById('bdStarsEl').addEventListener('click', function(e) {
