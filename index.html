@@ -1122,7 +1122,9 @@
             white-space: nowrap;
             font-family: inherit;
         }
-        .bd-btn:hover  { filter: brightness(1.12); }
+        .bd-btn:hover                              { filter: brightness(1.12); transform: none; box-shadow: none; }
+        .bd-btn-delete:hover, .bd-btn-cancel:hover { background: transparent; }
+        .bd-btn-edit:hover,   .bd-btn-save:hover   { background: var(--gold); }
         .bd-btn-delete { background: transparent;  border: 1px solid var(--gold-dim); color: var(--text);    }
         .bd-btn-edit   { background: var(--gold);  border: 1px solid var(--gold);     color: var(--surface); min-width: 68px; }
         .bd-btn-cancel { background: transparent;  border: 1px solid var(--gold-dim); color: var(--text);    }
