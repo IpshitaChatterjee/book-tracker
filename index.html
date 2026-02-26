@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Reading Journey</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -485,7 +484,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
             padding: 0;
         }
 
@@ -972,7 +971,7 @@
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.72), 0 2px 12px rgba(0,0,0,0.48);
             scrollbar-width: thin;
             scrollbar-color: var(--border-mid) transparent;
         }
@@ -1309,6 +1308,22 @@
             .tab { font-size: 0.63em; padding: 11px 10px; }
             .books-list { gap: 8px; }
         }
+
+        /* Empty-state CTA */
+        .empty-state-cta {
+            margin-top: 24px;
+            display: inline-block;
+            width: auto;
+        }
+
+        /* Respect reduced-motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1328,9 +1343,9 @@
         <!-- Tabs -->
         <nav aria-label="App sections">
         <div class="tabs" role="tablist">
-            <div class="tab active" data-tab="library" role="tab" tabindex="0">Library</div>
-            <div class="tab" data-tab="add" role="tab" tabindex="0">Add New</div>
-            <div class="tab" data-tab="recommendations" role="tab" tabindex="0">Discover</div>
+            <div class="tab active" data-tab="library" role="tab" tabindex="0" aria-selected="true">Library</div>
+            <div class="tab" data-tab="add" role="tab" tabindex="0" aria-selected="false">Add New</div>
+            <div class="tab" data-tab="recommendations" role="tab" tabindex="0" aria-selected="false">Discover</div>
         </div>
         </nav>
 
@@ -1431,7 +1446,7 @@
             <!-- Recommendations Tab -->
             <div id="recommendations" class="tab-content">
                 <h2 class="section-title" style="margin-bottom: 16px;">What Should I Read Next?</h2>
-                <p class="recs-intro">Based on your reading history and preferences, here are some beginner-friendly picks:</p>
+                <p class="recs-intro">Based on your reading history and tastes, Claude will suggest titles you're likely to love:</p>
                 <button id="generateRecsBtn" style="margin-bottom: 28px;">Generate Recommendations</button>
                 <div id="recommendationsList" class="recommendations"></div>
             </div>
@@ -1630,7 +1645,6 @@
                 return;
             }
 
-            console.log('Loading books from Supabase for user_id:', currentUser.id);
 
             try {
                 const { data, error } = await supabase
@@ -1646,8 +1660,6 @@
                     throw error;
                 }
 
-                console.log('Raw data from Supabase:', data);
-                console.log('Number of books loaded:', data ? data.length : 0);
 
                 // Convert Supabase format to local format
                 books = data.map(book => ({
@@ -1662,7 +1674,6 @@
                     apiRating: book.api_rating || ''
                 }));
 
-                console.log(`Successfully loaded ${books.length} books from Supabase`);
                 populateYearFilter();
                 updateGenreDropdowns();
                 renderBooks();
@@ -1680,8 +1691,6 @@
                 return;
             }
 
-            console.log('Saving book to Supabase with user_id:', currentUser.id);
-            console.log('Book data:', book);
 
             try {
                 const { data, error } = await supabase
@@ -1708,7 +1717,6 @@
 
                 // Update local book with Supabase ID
                 book.id = data[0].id;
-                console.log('Book saved successfully to Supabase:', book.title);
 
             } catch (error) {
                 console.error('Error saving book:', error);
@@ -1737,7 +1745,6 @@
                     .eq('user_id', currentUser.id);
 
                 if (error) throw error;
-                console.log('Book updated in Supabase:', book.title);
 
             } catch (error) {
                 console.error('Error updating book:', error);
@@ -1756,7 +1763,6 @@
                     .eq('user_id', currentUser.id);
 
                 if (error) throw error;
-                console.log('Book deleted from Supabase');
 
             } catch (error) {
                 console.error('Error deleting book:', error);
@@ -1766,14 +1772,11 @@
 
         document.getElementById('manualGenre').addEventListener('change', function() {
             const customGenreGroup = document.getElementById('customGenreGroup');
-            console.log('Genre selected:', this.value);
             if (this.value === 'Other') {
                 customGenreGroup.style.display = 'block';
-                console.log('Showing custom genre field');
             } else {
                 customGenreGroup.style.display = 'none';
                 document.getElementById('customGenre').value = '';
-                console.log('Hiding custom genre field');
             }
         });
 
@@ -1782,10 +1785,14 @@
             tab.addEventListener('click', function() {
                 const tabName = this.dataset.tab;
 
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab').forEach(t => {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
                 this.classList.add('active');
+                this.setAttribute('aria-selected', 'true');
                 document.getElementById(tabName).classList.add('active');
 
                 if (tabName === 'library') {
@@ -1968,6 +1975,7 @@
             }
 
             document.getElementById('editModal').classList.add('active');
+            requestAnimationFrame(() => document.getElementById('editTitle').focus());
         }
 
         // Close edit modal
@@ -2071,6 +2079,7 @@
             document.getElementById('bdEdit').style.display = 'none';
             document.getElementById('bookDetailOverlay').classList.add('active');
             document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => document.getElementById('bdClose').focus());
         }
 
         // Open the detail modal immediately in EDIT mode
@@ -2271,7 +2280,6 @@
 
         // Add book button
         document.getElementById('addBookBtn').addEventListener('click', async function() {
-            console.log('Add book button clicked');
 
             try {
                 // Validate required fields
@@ -2279,29 +2287,24 @@
                 const rating = document.getElementById('rating').value;
                 const dateFinished = document.getElementById('dateFinished').value;
 
-                console.log('Title:', title, 'Rating:', rating, 'Date:', dateFinished);
 
                 // Visual feedback for missing fields
                 if (!title) {
-                    document.getElementById('bookTitle').style.borderColor = '#b84a38';
+                    document.getElementById('bookTitle').style.borderColor = 'var(--red)';
                     setTimeout(() => document.getElementById('bookTitle').style.borderColor = '', 2000);
                     return;
                 }
                 if (!rating) {
-                    document.getElementById('ratingValue').style.color = '#b84a38';
+                    document.getElementById('ratingValue').style.color = 'var(--red)';
                     setTimeout(() => document.getElementById('ratingValue').style.color = '', 2000);
                     return;
                 }
                 if (!dateFinished) {
-                    document.getElementById('dateFinished').style.borderColor = '#b84a38';
+                    document.getElementById('dateFinished').style.borderColor = 'var(--red)';
                     setTimeout(() => document.getElementById('dateFinished').style.borderColor = '', 2000);
                     return;
                 }
 
-                console.log('Adding book...');
-                console.log('Current rating:', rating);
-                console.log('Current cover:', currentCoverImage);
-                console.log('Current book info:', window.currentBookInfo);
 
             // Determine genre - use manual entry if provided, otherwise use API data
             let finalGenre = 'Other';
@@ -2320,7 +2323,7 @@
                     let customGenre = document.getElementById('customGenre').value.trim();
 
                     if (!customGenre) {
-                        document.getElementById('customGenre').style.borderColor = '#b84a38';
+                        document.getElementById('customGenre').style.borderColor = 'var(--red)';
                         setTimeout(() => document.getElementById('customGenre').style.borderColor = '', 2000);
                         return;
                     }
@@ -2338,11 +2341,9 @@
                     if (existingMatch) {
                         // Use the existing genre name (preserving original casing)
                         finalGenre = existingMatch;
-                        console.log(`Genre "${customGenre}" already exists as "${existingMatch}"`);
                     } else {
                         // New custom genre
                         finalGenre = customGenre;
-                        console.log(`Adding new genre: "${customGenre}"`);
                     }
                 } else if (manualGenre) {
                     finalGenre = manualGenre;
@@ -2369,7 +2370,6 @@
                 apiRating: finalApiRating
             };
 
-            console.log('Book object:', book);
 
             // Save to Supabase
             await saveBookToSupabase(book);
@@ -2528,7 +2528,6 @@
             const manualSection = document.getElementById('manualEntrySection');
 
             try {
-                console.log('Fetching details for:', title);
 
                 const response = await fetch("/api/claude", {
                     method: "POST",
@@ -2556,14 +2555,12 @@ Response must be valid JSON only.`
                     })
                 });
 
-                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`API error: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('API response:', data);
 
                 if (data.content && data.content[0]?.text) {
                     let jsonText = data.content[0].text.trim();
@@ -2571,10 +2568,8 @@ Response must be valid JSON only.`
                     // Remove markdown code blocks if present
                     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-                    console.log('Cleaned JSON text:', jsonText);
 
                     const bookData = JSON.parse(jsonText);
-                    console.log('Parsed book data:', bookData);
 
                     if (bookData.error) {
                         statusDiv.textContent = '❌ Book not found — please add details manually below';
@@ -2608,7 +2603,6 @@ Response must be valid JSON only.`
                         manualSection.style.display = 'none';
                     }
 
-                    console.log('Book details stored:', window.currentBookInfo);
                 }
             } catch (error) {
                 console.error('Lookup error:', error);
@@ -2701,7 +2695,7 @@ Response must be valid JSON only.`
                         <div class="empty-state">
                             <h3>Your library is empty</h3>
                             <p>Start building your reading ledger — every great collection begins with a single book.</p>
-                            <button onclick="document.querySelector('[data-tab=add]').click()" style="margin-top: 24px; display: inline-block; width: auto;">Log your first book</button>
+                            <button class="empty-state-cta" onclick="document.querySelector('[data-tab=add]').click()">Log your first book</button>
                         </div>
                     `;
                 } else {
@@ -2738,7 +2732,7 @@ Response must be valid JSON only.`
                     <div class="book-card-stars" aria-label="Rating: ${book.rating} out of 5">
                         ${stars}
                     </div>
-                    <button class="delete-btn-icon" data-book-id="${book.id}" title="Options">
+                    <button class="delete-btn-icon" data-book-id="${book.id}" title="Options" aria-label="Options">
                         <!-- Geist: MoreHorizontal -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
                     </button>
@@ -2778,7 +2772,7 @@ Response must be valid JSON only.`
                     <div class="empty-state">
                         <h3>Nothing to go on yet</h3>
                         <p>Log at least one book to your library and we'll find reads you'll love.</p>
-                        <button onclick="document.querySelector('[data-tab=add]').click()" style="margin-top: 24px; display: inline-block; width: auto;">Log your first book</button>
+                        <button class="empty-state-cta" onclick="document.querySelector('[data-tab=add]').click()">Log your first book</button>
                     </div>
                 `;
                 return;
@@ -2788,7 +2782,7 @@ Response must be valid JSON only.`
             recList.innerHTML = `
                 <div class="loading-state">
                     <div class="loading-primary">Consulting the stacks...</div>
-                    <div class="loading-secondary">Analysing your reading history</div>
+                    <div class="loading-secondary">Analyzing your reading history</div>
                 </div>
             `;
 
@@ -2842,7 +2836,6 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
   ]
 }`;
 
-                console.log('Fetching personalized recommendations...');
 
                 const response = await fetch("/api/claude", {
                     method: "POST",
@@ -2860,14 +2853,12 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
                     })
                 });
 
-                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`API error: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('API response:', data);
 
                 if (data.content && data.content[0]?.text) {
                     let jsonText = data.content[0].text.trim();
@@ -2875,10 +2866,8 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
                     // Remove markdown code blocks if present
                     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-                    console.log('Cleaned JSON text:', jsonText);
 
                     const result = JSON.parse(jsonText);
-                    console.log('Parsed recommendations:', result);
 
                     if (result.recommendations && result.recommendations.length > 0) {
                         recList.innerHTML = result.recommendations.map(book => `
