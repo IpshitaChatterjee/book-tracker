@@ -1028,33 +1028,39 @@
             font-family: 'EB Garamond', Georgia, serif;
             letter-spacing: 1.5px;
             text-transform: uppercase;
-            display: none;
+            display: flex;           /* always in layout; use opacity to hide */
             align-items: center;
             justify-content: center;
             gap: 6px;
             padding: 9px 0;
             cursor: pointer;
-            transition: background 0.15s;
+            opacity: 0;              /* hidden by default */
+            pointer-events: none;    /* not interactive when hidden */
+            transition: background 0.15s, opacity 0.18s ease;
             border-radius: 0 0 1px 1px;
         }
         .bd-cover-edit-btn:hover { background: rgba(0,0,0,0.82); }
-        .bd-card-col.editing .bd-cover-edit-btn { display: flex; }
+        .bd-card-col.editing .bd-cover-edit-btn { opacity: 1; pointer-events: auto; }
         .bd-stars { display: flex; gap: 4px; align-items: center; }
 
-        /* Right: info column */
+        /* Right: info column — position:relative so panels stack absolutely */
         .bd-info {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            position: relative;
             min-width: 0;
             align-self: stretch;
         }
+        /* Both panels occupy the same fixed space → zero reflow on mode switch */
         #bdView, #bdEdit {
+            position: absolute;
+            inset: 0;
             display: flex;
             flex-direction: column;
             gap: 12px;
-            flex: 1;
+            padding-right: 44px; /* clear the ✕ button (right:20px + 24px width) */
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-mid) transparent;
         }
         .bd-title {
             font-family: 'EB Garamond', Georgia, serif;
@@ -1254,7 +1260,14 @@
                 max-height: 94vh;
                 overflow-y: auto;
             }
-            .bd-info { width: 100%; }
+            /* On mobile the modal is a column, so panels must be in normal flow */
+            .bd-info { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+            #bdView, #bdEdit {
+                position: static;
+                padding-right: 16px;
+                overflow-y: visible;
+                scrollbar-width: none;
+            }
             .bd-footer { justify-content: center; }
             .bd-meta { white-space: normal; text-align: center; }
             .bd-actions { flex-direction: column-reverse; width: 100%; gap: 8px; }
