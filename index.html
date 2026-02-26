@@ -278,6 +278,17 @@
             color: var(--text-muted);
         }
 
+        .stat-genre {
+            font-family: 'Playfair Display', serif;
+            font-size: 15px;
+            font-weight: 400;
+            font-style: italic;
+            color: var(--gold);
+            line-height: 1.3;
+            word-break: break-word;
+            max-width: 120px;
+        }
+
         /* ─── Books List — 5-col portrait grid ─── */
         .books-list {
             display: grid;
@@ -1319,7 +1330,7 @@
         <div class="tabs" role="tablist">
             <div class="tab active" data-tab="library" role="tab" tabindex="0">Library</div>
             <div class="tab" data-tab="add" role="tab" tabindex="0">Add New</div>
-            <div class="tab" data-tab="recommendations" role="tab" tabindex="0">Next</div>
+            <div class="tab" data-tab="recommendations" role="tab" tabindex="0">Discover</div>
         </div>
         </nav>
 
@@ -2658,16 +2669,16 @@ Response must be valid JSON only.`
 
             document.getElementById('stats').innerHTML = `
                 <div class="stat-card">
-                    <div class="stat-number">${totalBooks > 0 ? favoriteGenre : '—'}</div>
-                    <div class="stat-label">Top Genre</div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-number">${totalBooks}</div>
                     <div class="stat-label">Books Read</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number">${avgRating}</div>
                     <div class="stat-label">Avg Rating</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-genre">${totalBooks > 0 ? favoriteGenre : '—'}</div>
+                    <div class="stat-label">Top Genre</div>
                 </div>
             `;
         }
@@ -2685,16 +2696,22 @@ Response must be valid JSON only.`
                 });
 
             if (filteredBooks.length === 0) {
-                const message = selectedYear === 'all'
-                    ? 'No books yet! Start logging your reading journey by adding your first book.'
-                    : `No books read in ${selectedYear}. Try selecting a different year or add a new book!`;
-
-                booksList.innerHTML = `
-                    <div class="empty-state">
-                        <h3>No books ${selectedYear === 'all' ? 'yet' : 'for ' + selectedYear}</h3>
-                        <p>${message}</p>
-                    </div>
-                `;
+                if (selectedYear === 'all') {
+                    booksList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>Your library is empty</h3>
+                            <p>Start building your reading ledger — every great collection begins with a single book.</p>
+                            <button onclick="document.querySelector('[data-tab=add]').click()" style="margin-top: 24px; display: inline-block; width: auto;">Log your first book</button>
+                        </div>
+                    `;
+                } else {
+                    booksList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No books for ${selectedYear}</h3>
+                            <p>Nothing logged for this year. Select a different year or add a new entry.</p>
+                        </div>
+                    `;
+                }
                 return;
             }
 
@@ -2755,11 +2772,23 @@ Response must be valid JSON only.`
         async function generateRecommendations() {
             const recList = document.getElementById('recommendationsList');
 
+            // Guard: need at least one book to generate recommendations
+            if (books.length === 0) {
+                recList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Nothing to go on yet</h3>
+                        <p>Log at least one book to your library and we'll find reads you'll love.</p>
+                        <button onclick="document.querySelector('[data-tab=add]').click()" style="margin-top: 24px; display: inline-block; width: auto;">Log your first book</button>
+                    </div>
+                `;
+                return;
+            }
+
             // Show loading state
             recList.innerHTML = `
                 <div class="loading-state">
-                    <div class="loading-primary">🔍 Finding your perfect next reads...</div>
-                    <div class="loading-secondary">Analyzing your reading history and current trends</div>
+                    <div class="loading-primary">Consulting the stacks...</div>
+                    <div class="loading-secondary">Analysing your reading history</div>
                 </div>
             `;
 
