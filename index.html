@@ -38,6 +38,9 @@
         /* ─── Reset ─── */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* Screen-reader only utility */
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
         html { background: var(--bg); }
 
         body {
@@ -217,7 +220,7 @@
         /* ─── Year Filter ─── */
         #yearFilter {
             width: 147px;
-            height: 40px;
+            min-height: 44px;
             padding: 8px 12px 8px 12px;
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 16px;
@@ -462,7 +465,7 @@
         .delete-btn-icon {
             position: absolute;
             top: 6px; right: 6px;
-            width: 26px; height: 26px;
+            width: 36px; height: 36px;
             border-radius: 50%;
             background: transparent;
             color: var(--text-dim);
@@ -604,20 +607,23 @@
             align-items: center;
         }
 
-        .star {
+        .star, .edit-star {
             font-size: 28px;
+            background: none;
+            border: none;
+            padding: 0;
             cursor: pointer;
             color: var(--border-accent);
             transition: color 0.15s, transform 0.12s;
             line-height: 1;
         }
 
-        .star:hover,
-        .star.active {
+        .star:hover, .star.active,
+        .edit-star:hover, .edit-star.active {
             color: var(--gold);
         }
 
-        .star:hover {
+        .star:hover, .edit-star:hover {
             transform: scale(1.18);
         }
 
@@ -1106,7 +1112,7 @@
             font-size: 14px;
             font-weight: 500;
             padding: 6px 12px;
-            min-height: 32px;
+            min-height: 40px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
@@ -1173,7 +1179,7 @@
         .bd-star-interactive {
             background: none;
             border: none;
-            padding: 0;
+            padding: 4px 2px;
             cursor: pointer;
             line-height: 0;
             transition: transform 0.1s;
@@ -1296,7 +1302,7 @@
     <div class="container">
 
         <!-- Header -->
-        <div class="header">
+        <header class="header">
             <div class="header-eyebrow">Personal Reading Ledger</div>
             <h1>My Reading Journey</h1>
             <div class="header-ornament">
@@ -1304,21 +1310,25 @@
                 <div class="ornament-diamond"></div>
                 <div class="ornament-line r"></div>
             </div>
-        </div>
+        </header>
 
         <!-- Tabs -->
+        <nav aria-label="App sections">
         <div class="tabs" role="tablist">
             <div class="tab active" data-tab="library" role="tab" tabindex="0">Library</div>
             <div class="tab" data-tab="add" role="tab" tabindex="0">Add New</div>
             <div class="tab" data-tab="recommendations" role="tab" tabindex="0">Next</div>
         </div>
+        </nav>
 
-        <div class="content">
+        <main class="content">
 
             <!-- Library Tab -->
             <div id="library" class="tab-content active">
+                <h2 class="sr-only">Your Library</h2>
                 <div class="section-header">
                     <div class="form-group" style="margin: 0;">
+                        <label for="yearFilter" class="sr-only">Filter by year</label>
                         <select id="yearFilter">
                             <option value="all">All Years</option>
                         </select>
@@ -1371,14 +1381,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Your Rating</label>
-                        <div class="rating-input">
-                            <span class="star" data-rating="1">★</span>
-                            <span class="star" data-rating="2">★</span>
-                            <span class="star" data-rating="3">★</span>
-                            <span class="star" data-rating="4">★</span>
-                            <span class="star" data-rating="5">★</span>
-                            <span id="ratingValue">0/5</span>
+                        <label id="ratingLabel">Your Rating</label>
+                        <div class="rating-input" role="group" aria-labelledby="ratingLabel">
+                            <button type="button" class="star" data-rating="1" aria-label="1 star">★</button>
+                            <button type="button" class="star" data-rating="2" aria-label="2 stars">★</button>
+                            <button type="button" class="star" data-rating="3" aria-label="3 stars">★</button>
+                            <button type="button" class="star" data-rating="4" aria-label="4 stars">★</button>
+                            <button type="button" class="star" data-rating="5" aria-label="5 stars">★</button>
+                            <span id="ratingValue" aria-live="polite">0/5</span>
                         </div>
                         <input type="hidden" id="rating" required>
                     </div>
@@ -1413,13 +1423,13 @@
                 <div id="recommendationsList" class="recommendations"></div>
             </div>
 
-        </div>
+        </main>
     </div>
 
     <!-- Edit Modal -->
-    <div class="edit-modal" id="editModal">
+    <div class="edit-modal" id="editModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
         <div class="edit-modal-content">
-            <div class="edit-modal-header">Edit Book</div>
+            <div class="edit-modal-header" id="editModalTitle">Edit Book</div>
             <div id="editForm">
 
                 <div class="form-group">
@@ -1428,14 +1438,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Your Rating</label>
-                    <div class="rating-input">
-                        <span class="edit-star" data-rating="1">★</span>
-                        <span class="edit-star" data-rating="2">★</span>
-                        <span class="edit-star" data-rating="3">★</span>
-                        <span class="edit-star" data-rating="4">★</span>
-                        <span class="edit-star" data-rating="5">★</span>
-                        <span id="editRatingValue">0/5</span>
+                    <label id="editRatingLabel">Your Rating</label>
+                    <div class="rating-input" role="group" aria-labelledby="editRatingLabel">
+                        <button type="button" class="edit-star" data-rating="1" aria-label="1 star">★</button>
+                        <button type="button" class="edit-star" data-rating="2" aria-label="2 stars">★</button>
+                        <button type="button" class="edit-star" data-rating="3" aria-label="3 stars">★</button>
+                        <button type="button" class="edit-star" data-rating="4" aria-label="4 stars">★</button>
+                        <button type="button" class="edit-star" data-rating="5" aria-label="5 stars">★</button>
+                        <span id="editRatingValue" aria-live="polite">0/5</span>
                     </div>
                     <input type="hidden" id="editRating" required>
                 </div>
@@ -1510,10 +1520,10 @@
 
                 <!-- EDIT MODE (hidden initially) -->
                 <div id="bdEdit" style="display:none;">
-                    <input type="text" class="bd-edit-input bd-edit-title-input" id="bdEditTitle" placeholder="Book title...">
-                    <input type="text" class="bd-edit-input" id="bdEditAuthor" placeholder="Author...">
-                    <select class="bd-edit-select" id="bdEditGenre"></select>
-                    <textarea class="bd-edit-textarea" id="bdEditSynopsis" placeholder="Synopsis..."></textarea>
+                    <input type="text" class="bd-edit-input bd-edit-title-input" id="bdEditTitle" aria-label="Title" placeholder="Book title...">
+                    <input type="text" class="bd-edit-input" id="bdEditAuthor" aria-label="Author" placeholder="Author...">
+                    <select class="bd-edit-select" id="bdEditGenre" aria-label="Genre"></select>
+                    <textarea class="bd-edit-textarea" id="bdEditSynopsis" aria-label="Synopsis" placeholder="Synopsis..."></textarea>
                     <div class="bd-edit-footer">
                         <div class="bd-edit-date-wrap">
                             <label class="bd-edit-label" for="bdEditDate">Date Finished</label>
