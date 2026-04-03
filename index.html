@@ -1337,6 +1337,79 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        /* ─── Auth UI ─── */
+        .header-auth-btn {
+            position: absolute;
+            bottom: 14px;
+            right: 18px;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 6px;
+            opacity: 0.35;
+            transition: opacity 0.2s, color 0.2s;
+            line-height: 0;
+            border-radius: 2px;
+        }
+        .header-auth-btn:hover { opacity: 1; color: var(--gold); }
+        .header-auth-btn.signed-in { color: var(--gold); opacity: 0.75; }
+
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(3px);
+            padding: 24px;
+        }
+        .login-overlay.active { display: flex; }
+
+        .login-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.72);
+        }
+
+        .login-modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.35em;
+            color: var(--cream);
+            letter-spacing: -0.01em;
+        }
+
+        .login-error {
+            font-size: 0.9em;
+            color: var(--red);
+            padding: 8px 12px;
+            background: rgba(184,74,56,0.1);
+            border: 1px solid var(--red);
+            border-radius: 2px;
+        }
+
+        .login-modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        /* Viewer mode: hide owner-only elements */
+        body.viewer-mode [data-tab="add"],
+        body.viewer-mode [data-tab="recommendations"] { display: none !important; }
+        body.viewer-mode #bdDeleteBtn,
+        body.viewer-mode #bdEditBtn { display: none !important; }
     </style>
 </head>
 <body>
@@ -1351,6 +1424,9 @@
                 <div class="ornament-diamond"></div>
                 <div class="ornament-line r"></div>
             </div>
+            <button class="header-auth-btn" id="headerAuthBtn" title="Owner sign in" aria-label="Owner sign in">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </button>
         </header>
 
         <!-- Tabs -->
@@ -1587,6 +1663,22 @@
         <button class="undo-toast-btn" id="undoBtnEl">Undo</button>
     </div>
 
+    <!-- Login Modal -->
+    <div class="login-overlay" id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+        <div class="login-modal">
+            <div class="login-modal-title" id="loginTitle">Owner Sign In</div>
+            <div class="login-error" id="loginError" style="display:none;"></div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••">
+            </div>
+            <div class="login-modal-footer">
+                <button type="button" class="cancel-btn" id="loginCancelBtn">Cancel</button>
+                <button type="button" id="loginSubmitBtn">Sign In</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1598,8 +1690,10 @@
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Use a fixed UUID for solo user (valid UUID format required by Supabase)
-        let currentUser = { id: '00000000-0000-0000-0000-000000000001' };
+        // Fixed UUID for the owner's book collection
+        const OWNER_UUID = '00000000-0000-0000-0000-000000000001';
+        let currentUser = { id: OWNER_UUID };
+        let isOwner = false;
 
         document.addEventListener('DOMContentLoaded', async function() {
 
@@ -1607,6 +1701,10 @@
         let books = [];
         let currentRating = 0;
         let currentCoverImage = null;
+
+        // Check auth state — determines owner vs viewer mode
+        isOwner = localStorage.getItem('bt_owner') === '1';
+        applyOwnerMode(isOwner);
 
         // Load books directly from Supabase
         await loadBooksFromSupabase();
@@ -1797,6 +1895,7 @@
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', function() {
                 const tabName = this.dataset.tab;
+                if (!isOwner && (tabName === 'add' || tabName === 'recommendations')) return;
 
                 document.querySelectorAll('.tab').forEach(t => {
                     t.classList.remove('active');
@@ -2745,6 +2844,7 @@ Response must be valid JSON only.`
                     <div class="book-card-stars" aria-label="Rating: ${book.rating} out of 5">
                         ${stars}
                     </div>
+                    ${isOwner ? `
                     <button class="delete-btn-icon" data-book-id="${book.id}" title="Options" aria-label="Options">
                         <!-- Geist: MoreHorizontal -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
@@ -2760,7 +2860,7 @@ Response must be valid JSON only.`
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                             Delete
                         </button>
-                    </div>
+                    </div>` : ''}
                 </div>
                 `;
             }).join('');
@@ -2915,6 +3015,85 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
                 `;
             }
         }
+
+        // ─── Auth: owner vs viewer mode ───
+
+        function applyOwnerMode(owner) {
+            const authBtn = document.getElementById('headerAuthBtn');
+            if (owner) {
+                document.body.classList.remove('viewer-mode');
+                authBtn.classList.add('signed-in');
+                authBtn.title = 'Sign out';
+                authBtn.setAttribute('aria-label', 'Sign out');
+                // Update lock icon to unlocked
+                authBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`;
+            } else {
+                document.body.classList.add('viewer-mode');
+                authBtn.classList.remove('signed-in');
+                authBtn.title = 'Owner sign in';
+                authBtn.setAttribute('aria-label', 'Owner sign in');
+                authBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+                // If on a restricted tab, switch to library
+                const activeTab = document.querySelector('.tab.active');
+                if (activeTab && (activeTab.dataset.tab === 'add' || activeTab.dataset.tab === 'recommendations')) {
+                    document.querySelector('[data-tab="library"]').click();
+                }
+            }
+        }
+
+        // Header auth button: sign in or sign out
+        document.getElementById('headerAuthBtn').addEventListener('click', function() {
+            if (isOwner) {
+                localStorage.removeItem('bt_owner');
+                isOwner = false;
+                applyOwnerMode(false);
+                renderBooks();
+                renderStats();
+            } else {
+                openLoginModal();
+            }
+        });
+
+        function openLoginModal() {
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginOverlay').classList.add('active');
+            requestAnimationFrame(() => document.getElementById('loginEmail').focus());
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginOverlay').classList.remove('active');
+        }
+
+        document.getElementById('loginCancelBtn').addEventListener('click', closeLoginModal);
+
+        document.getElementById('loginOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeLoginModal();
+        });
+
+        document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('loginSubmitBtn').click();
+        });
+
+        document.getElementById('loginSubmitBtn').addEventListener('click', function() {
+            const password = document.getElementById('loginPassword').value;
+            const errEl    = document.getElementById('loginError');
+
+            if (password === 'book-tracker') {
+                localStorage.setItem('bt_owner', '1');
+                isOwner = true;
+                applyOwnerMode(true);
+                renderBooks();
+                renderStats();
+                closeLoginModal();
+            } else {
+                errEl.textContent = 'Incorrect password.';
+                errEl.style.display = 'block';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
+        });
 
         // Initial render
         populateYearFilter();
