@@ -109,22 +109,21 @@ function Stars({ rating }) {
 
 // ─── Interactive stars ────────────────────────────────────────
 
-function RatingStars({ rating, hover, onRate, onHover, onLeave, className = 'star' }) {
+function RatingStars({ rating, hover, onRate, onHover, onLeave }) {
   return (
     <div className="rating-input" onMouseLeave={onLeave}>
       {[1, 2, 3, 4, 5].map(i => (
         <button
           key={i}
           type="button"
-          className={`${className}${(hover || rating) >= i ? ' active' : ''}`}
+          className={`bd-star-interactive${(hover || rating) >= i ? ' active' : ''}`}
           aria-label={`${i} star${i > 1 ? 's' : ''}`}
           onClick={() => onRate(i)}
           onMouseEnter={() => onHover(i)}
-        >★</button>
+        >
+          {(hover || rating) >= i ? <StarFillSVG /> : <StarEmptySVG />}
+        </button>
       ))}
-      <span style={{ fontFamily: 'var(--font-sans), sans-serif', fontSize: '13px', color: 'var(--amber)', minWidth: 32, marginLeft: 4, fontWeight: 500 }}>
-        {rating}/5
-      </span>
     </div>
   );
 }
@@ -139,6 +138,9 @@ export default function BookTracker() {
   // Tabs
   const [activeTab, setActiveTab] = useState('library');
   const [selectedYear, setSelectedYear] = useState('all');
+
+  // Add Book drawer
+  const [showAddDrawer, setShowAddDrawer] = useState(false);
 
   // Add-book form
   const [addTitle, setAddTitle] = useState('');
@@ -262,9 +264,9 @@ export default function BookTracker() {
 
   // Modal scroll lock
   useEffect(() => {
-    document.body.style.overflow = detailId ? 'hidden' : '';
+    document.body.style.overflow = (detailId || showAddDrawer) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [detailId]);
+  }, [detailId, showAddDrawer]);
 
   // ESC key
   useEffect(() => {
@@ -274,11 +276,12 @@ export default function BookTracker() {
         if (detailMode === 'edit') exitEditMode();
         else closeDetail();
       }
+      if (showAddDrawer) setShowAddDrawer(false);
       if (showLogin) closeLogin();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [detailId, detailMode, showLogin]);
+  }, [detailId, detailMode, showLogin, showAddDrawer]);
 
   // Close open card menu on outside click
   useEffect(() => {
@@ -291,10 +294,10 @@ export default function BookTracker() {
     return () => document.removeEventListener('click', onClickOutside);
   }, []);
 
-  // Clipboard paste for cover (Add tab only)
+  // Clipboard paste for cover (Add drawer only)
   useEffect(() => {
     async function onPaste(e) {
-      if (activeTab !== 'add') return;
+      if (!showAddDrawer) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
@@ -313,7 +316,7 @@ export default function BookTracker() {
     }
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
-  }, [activeTab]);
+  }, [showAddDrawer]);
 
   // ─── GSAP book hover animations ───────────────────────────
   useLayoutEffect(() => {
@@ -510,11 +513,10 @@ export default function BookTracker() {
             .replace(/```json\n?/g, '').replace(/```\n?/g, '');
           const parsed = JSON.parse(json);
           if (parsed.error) {
-            setLookupStatus({ text: '❌ Book not found — please add details manually below', color: 'var(--gold)' });
-            setShowManual(true);
+            setLookupStatus({ text: '❌ Book not found — add details manually', color: 'var(--gold)' });
+            setBookInfo(null);
           } else if (parsed.genre === 'Other') {
-            setLookupStatus({ text: `✓ Found: ${parsed.author} — please specify genre below`, color: 'var(--gold)' });
-            setShowManual(true);
+            setLookupStatus({ text: `✓ Found: ${parsed.author} — please specify genre`, color: 'var(--gold)' });
             setManualAuthor(parsed.author);
             setManualGenre('Other');
             setShowCustomGenre(true);
@@ -522,7 +524,9 @@ export default function BookTracker() {
             setBookInfo({ author: parsed.author, genre: parsed.genre, synopsis: parsed.synopsis, apiRating: parsed.rating });
           } else {
             setLookupStatus({ text: `✓ Found: ${parsed.author} — ${parsed.genre}`, color: 'var(--green-light)' });
-            setShowManual(false);
+            setManualAuthor(parsed.author);
+            setManualGenre(parsed.genre);
+            setManualSynopsis(parsed.synopsis);
             setBookInfo({ author: parsed.author, genre: parsed.genre, synopsis: parsed.synopsis, apiRating: parsed.rating });
           }
         }
@@ -538,25 +542,15 @@ export default function BookTracker() {
     if (!addRating) return;
     if (!addDate) return;
 
-    let finalGenre = 'Other', finalAuthor = '', finalSynopsis = '', finalApiRating = '';
+    let finalGenre = 'Other', finalAuthor = manualAuthor.trim(), finalSynopsis = manualSynopsis.trim(), finalApiRating = bookInfo?.apiRating || '';
 
-    if (showManual) {
-      finalAuthor = manualAuthor;
-      if (manualGenre === 'Other') {
-        if (!customGenre.trim()) return;
-        const norm = customGenre.trim().split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-        const match = allGenres.find(g => g.toLowerCase() === norm.toLowerCase());
-        finalGenre = match || norm;
-      } else if (manualGenre) {
-        finalGenre = manualGenre;
-      }
-      finalSynopsis = manualSynopsis;
-      if (bookInfo) finalApiRating = bookInfo.apiRating || '';
-    } else if (bookInfo) {
-      finalGenre = bookInfo.genre || 'Other';
-      finalAuthor = bookInfo.author || '';
-      finalSynopsis = bookInfo.synopsis || '';
-      finalApiRating = bookInfo.apiRating || '';
+    if (manualGenre === 'Other') {
+      if (!customGenre.trim()) return;
+      const norm = customGenre.trim().split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      const match = allGenres.find(g => g.toLowerCase() === norm.toLowerCase());
+      finalGenre = match || norm;
+    } else if (manualGenre) {
+      finalGenre = manualGenre;
     }
 
     const book = {
@@ -591,7 +585,7 @@ export default function BookTracker() {
       setShowCustomGenre(false);
       setManualSynopsis('');
 
-      setActiveTab('library');
+      setShowAddDrawer(false);
     } catch (err) {
       console.error('Error adding book:', err);
       alert('Error adding book. Check console for details.');
@@ -810,22 +804,6 @@ export default function BookTracker() {
 
           {isOwner && (
             <button
-              className={`sidebar-item${activeTab === 'add' ? ' active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'add'}
-              onClick={() => setActiveTab('add')}
-            >
-              <span className="sidebar-item-icon">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-              </span>
-              <span className="sidebar-item-text">Add Book</span>
-            </button>
-          )}
-
-          {isOwner && (
-            <button
               className={`sidebar-item${activeTab === 'recommendations' ? ' active' : ''}`}
               role="tab"
               aria-selected={activeTab === 'recommendations'}
@@ -879,12 +857,22 @@ export default function BookTracker() {
             <h2 className="section-title">
               {selectedYear === 'all' ? 'All Books' : `${selectedYear}`}
             </h2>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="yearFilter" className="sr-only">Filter by year</label>
-              <select id="yearFilter" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
-                <option value="all">All Years</option>
-                {allYears.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
+            <div className="section-header-actions">
+              <div className="form-group" style={{ margin: 0 }}>
+                <label htmlFor="yearFilter" className="sr-only">Filter by year</label>
+                <select id="yearFilter" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                  <option value="all">All Years</option>
+                  {allYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              {isOwner && (
+                <button className="add-book-cta" onClick={() => setShowAddDrawer(true)} aria-label="Log a book">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Log Book
+                </button>
+              )}
             </div>
           </div>
 
@@ -913,7 +901,7 @@ export default function BookTracker() {
                     <h3>Your library is empty</h3>
                     <p>Start building your reading ledger — every great collection begins with a single book.</p>
                     {isOwner && (
-                      <button className="empty-state-cta" onClick={() => setActiveTab('add')}>Log your first book</button>
+                      <button className="empty-state-cta" onClick={() => setShowAddDrawer(true)}>Log your first book</button>
                     )}
                   </>
                 ) : (
@@ -989,95 +977,6 @@ export default function BookTracker() {
           </div>
         </div>
 
-        {/* ── Add New tab ── */}
-        {isOwner && (
-          <div id="add" className={`tab-content${activeTab === 'add' ? ' active' : ''}`}>
-            <h2 className="section-title" style={{ marginBottom: 28 }}>Log a Finished Book</h2>
-
-            <div className="form-group">
-              <label htmlFor="bookTitle">Book Title</label>
-              <input
-                type="text"
-                id="bookTitle"
-                value={addTitle}
-                placeholder="Enter book title..."
-                onChange={e => { setAddTitle(e.target.value); lookupBook(e.target.value); }}
-              />
-              {lookupStatus.text && (
-                <div style={{ marginTop: 8, fontSize: '0.9em', color: lookupStatus.color }}>{lookupStatus.text}</div>
-              )}
-            </div>
-
-            {showManual && (
-              <div className="manual-entry-section">
-                <div className="manual-entry-label">✦ Add Details Manually</div>
-                <div className="form-group">
-                  <label htmlFor="manualAuthor">Author</label>
-                  <input type="text" id="manualAuthor" value={manualAuthor} placeholder="Enter author name..." onChange={e => setManualAuthor(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="manualGenre">Genre</label>
-                  <select id="manualGenre" value={manualGenre} onChange={e => {
-                    setManualGenre(e.target.value);
-                    setShowCustomGenre(e.target.value === 'Other');
-                    if (e.target.value !== 'Other') setCustomGenre('');
-                  }}>
-                    <option value="">Select a genre...</option>
-                    {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
-                    <option value="Other">Other (create new)</option>
-                  </select>
-                </div>
-                {showCustomGenre && (
-                  <div className="form-group">
-                    <label htmlFor="customGenre">Create New Genre</label>
-                    <input type="text" id="customGenre" value={customGenre} placeholder="Enter custom genre name..." onChange={e => setCustomGenre(e.target.value)} />
-                    <div className="genre-hint">This genre will be added to the dropdown for future use</div>
-                  </div>
-                )}
-                <div className="form-group">
-                  <label htmlFor="manualSynopsis">Synopsis (optional)</label>
-                  <textarea id="manualSynopsis" rows={4} value={manualSynopsis} placeholder="Paste or write a brief synopsis..." onChange={e => setManualSynopsis(e.target.value)} />
-                </div>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label id="ratingLabel">Your Rating</label>
-              <RatingStars
-                rating={addRating}
-                hover={addRatingHover}
-                onRate={setAddRating}
-                onHover={setAddRatingHover}
-                onLeave={() => setAddRatingHover(0)}
-                className="star"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="dateFinished">Date Finished</label>
-              <input type="date" id="dateFinished" value={addDate} onChange={e => setAddDate(e.target.value)} />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="bookCover">Book Cover (optional)</label>
-              <div className="cover-upload">
-                <div className="cover-preview" id="coverPreview">
-                  {addCover ? <img src={addCover} alt="Cover preview" /> : '📚'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <input type="file" id="bookCover" accept="image/png, image/jpeg, image/jpg"
-                    onChange={e => handleCoverFile(e.target.files[0])} />
-                  <div className="cover-hint">
-                    Or press <kbd>Ctrl+V</kbd> / <kbd>⌘V</kbd> to paste from clipboard
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button type="button" onClick={handleAddBook}>Add to Library</button>
-          </div>
-        )}
-
         {/* ── Discover tab ── */}
         {isOwner && (
           <div id="recommendations" className={`tab-content${activeTab === 'recommendations' ? ' active' : ''}`}>
@@ -1101,7 +1000,7 @@ export default function BookTracker() {
                 <div className="empty-state">
                   <h3>Nothing to go on yet</h3>
                   <p>Log at least one book to your library and we'll find reads you'll love.</p>
-                  <button className="empty-state-cta" onClick={() => setActiveTab('add')}>Log your first book</button>
+                  <button className="empty-state-cta" onClick={() => setShowAddDrawer(true)}>Log your first book</button>
                 </div>
               )}
               {recs && recs.map((rec, i) => (
@@ -1192,18 +1091,14 @@ export default function BookTracker() {
                       <select className="bd-edit-select" aria-label="Genre" value={detailEditGenre} onChange={e => setDetailEditGenre(e.target.value)}>
                         {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
-                      <div className="bd-stars" onMouseLeave={() => setDetailEditRatingHover(0)}>
-                        {[1, 2, 3, 4, 5].map(i => (
-                          <button
-                            key={i}
-                            className={`bd-star-interactive${(detailEditRatingHover || detailEditRating) >= i ? ' active' : ''}`}
-                            aria-label={`Rate ${i} out of 5`}
-                            onClick={() => setDetailEditRating(i)}
-                            onMouseEnter={() => setDetailEditRatingHover(i)}
-                          >
-                            {(detailEditRatingHover || detailEditRating) >= i ? <StarFillSVG /> : <StarEmptySVG />}
-                          </button>
-                        ))}
+                      <div className="bd-stars">
+                        <RatingStars
+                          rating={detailEditRating}
+                          hover={detailEditRatingHover}
+                          onRate={setDetailEditRating}
+                          onHover={setDetailEditRatingHover}
+                          onLeave={() => setDetailEditRatingHover(0)}
+                        />
                       </div>
                     </>
                   )}
@@ -1250,6 +1145,130 @@ export default function BookTracker() {
                   <button className="bd-btn bd-btn-save" onClick={saveDetailChanges}>Save Changes</button>
                 </>
               )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Book Drawer ── */}
+      {showAddDrawer && (
+        <div
+          className="book-detail-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="addDrawerTitle"
+          onClick={e => { if (e.target === e.currentTarget) setShowAddDrawer(false); }}
+        >
+          <div className="book-detail-modal">
+
+            {/* Sticky header */}
+            <div className="bd-drawer-header">
+              <span className="bd-drawer-title" id="addDrawerTitle">Log a Book</span>
+              <button className="book-detail-close" onClick={() => setShowAddDrawer(false)} aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="bd-drawer-body">
+
+              {/* Cover + meta row */}
+              <div className="bd-cover-row editing">
+                <div className="bd-cover-wrap">
+                  <div className="bd-cover">
+                    {addCover ? <img src={addCover} alt="Cover preview" /> : '📚'}
+                  </div>
+                  <label className="bd-cover-edit-btn" htmlFor="addCoverInput" title="Upload cover">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                    Upload
+                  </label>
+                  <input type="file" id="addCoverInput" accept="image/png,image/jpeg,image/jpg" style={{ display: 'none' }}
+                    onChange={e => { handleCoverFile(e.target.files[0]); e.target.value = ''; }} />
+                </div>
+
+                <div className="bd-cover-meta">
+                  <input
+                    type="text"
+                    className="bd-edit-input bd-edit-title-input"
+                    aria-label="Title"
+                    placeholder="Book title..."
+                    value={addTitle}
+                    onChange={e => { setAddTitle(e.target.value); lookupBook(e.target.value); }}
+                  />
+                  {lookupStatus.text && (
+                    <div className="bd-lookup-status" style={{ color: lookupStatus.color }}>{lookupStatus.text}</div>
+                  )}
+                  <input
+                    type="text"
+                    className="bd-edit-input"
+                    aria-label="Author"
+                    placeholder="Author..."
+                    value={manualAuthor}
+                    onChange={e => setManualAuthor(e.target.value)}
+                  />
+                  <select
+                    className="bd-edit-select"
+                    aria-label="Genre"
+                    value={manualGenre}
+                    onChange={e => {
+                      setManualGenre(e.target.value);
+                      setShowCustomGenre(e.target.value === 'Other');
+                      if (e.target.value !== 'Other') setCustomGenre('');
+                    }}
+                  >
+                    <option value="">Genre...</option>
+                    {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
+                    <option value="Other">Other (create new)</option>
+                  </select>
+                  <div className="bd-stars">
+                    <RatingStars
+                      rating={addRating}
+                      hover={addRatingHover}
+                      onRate={setAddRating}
+                      onHover={setAddRatingHover}
+                      onLeave={() => setAddRatingHover(0)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom genre input */}
+              {showCustomGenre && (
+                <div className="form-group" style={{ margin: 0 }}>
+                  <input type="text" className="bd-edit-input" style={{ width: '100%', boxSizing: 'border-box' }} value={customGenre} placeholder="Enter custom genre name..." onChange={e => setCustomGenre(e.target.value)} />
+                  <div className="genre-hint" style={{ marginTop: 4 }}>This genre will be added to the dropdown for future use</div>
+                </div>
+              )}
+
+              {/* Synopsis */}
+              <textarea
+                className="bd-edit-textarea"
+                aria-label="Synopsis"
+                placeholder="Synopsis (auto-filled from lookup or enter manually)..."
+                value={manualSynopsis}
+                onChange={e => setManualSynopsis(e.target.value)}
+              />
+
+              {/* Date */}
+              <div className="bd-edit-date-wrap">
+                <label className="bd-edit-label" htmlFor="addDateFinished">Date Finished</label>
+                <input type="date" className="bd-edit-input" id="addDateFinished" style={{ width: 'auto' }} value={addDate} onChange={e => setAddDate(e.target.value)} />
+              </div>
+
+              {/* Paste hint */}
+              <div className="cover-hint" style={{ fontSize: '0.8em' }}>
+                Press <kbd>Ctrl+V</kbd> / <kbd>⌘V</kbd> to paste a cover image from clipboard
+              </div>
+
+            </div>
+
+            {/* Sticky footer */}
+            <div className="bd-drawer-footer">
+              <button className="bd-btn bd-btn-cancel" onClick={() => setShowAddDrawer(false)}>Cancel</button>
+              <button className="bd-btn bd-btn-save" onClick={handleAddBook}>Add to Library</button>
             </div>
 
           </div>
