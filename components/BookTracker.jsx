@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { gsap } from 'gsap';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 
 // ─── SVG helpers ───────────────────────────────────────────────
@@ -18,6 +19,24 @@ const StarEmptySVG = () => (
     viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+const MoonSVG = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
+
+const SunSVG = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="5"/>
+    <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
   </svg>
 );
 
@@ -103,7 +122,7 @@ function RatingStars({ rating, hover, onRate, onHover, onLeave, className = 'sta
           onMouseEnter={() => onHover(i)}
         >★</button>
       ))}
-      <span style={{ fontFamily: 'var(--font-garamond), Georgia, serif', fontSize: '0.9em', color: 'var(--gold)', minWidth: 36, marginLeft: 4 }}>
+      <span style={{ fontFamily: 'var(--font-sans), sans-serif', fontSize: '13px', color: 'var(--amber)', minWidth: 32, marginLeft: 4, fontWeight: 500 }}>
         {rating}/5
       </span>
     </div>
@@ -160,6 +179,13 @@ export default function BookTracker() {
   const [undoBook, setUndoBook] = useState(null);
   const undoTimerRef = useRef(null);
   const deletedCacheRef = useRef(null);
+  const gsapTimelinesRef = useRef([]);
+
+  // Theme
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Responsive books-per-shelf (synced with CSS grid columns)
+  const [booksPerRow, setBooksPerRow] = useState(6);
 
   // Recommendations
   const [recs, setRecs] = useState(null);
@@ -202,6 +228,36 @@ export default function BookTracker() {
   useEffect(() => {
     setIsOwner(localStorage.getItem('bt_owner') === '1');
     loadBooks();
+  }, []);
+
+  // Dark mode — sync with html.dark class
+  useEffect(() => {
+    const saved = localStorage.getItem('rt_theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = saved === 'dark' || (saved === null && prefersDark);
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle('dark', isDark);
+  }, []);
+
+  function toggleDark() {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('rt_theme', next ? 'dark' : 'light');
+  }
+
+  // Sync books-per-row with CSS grid breakpoints
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth;
+      if (w > 960) setBooksPerRow(6);
+      else if (w > 768) setBooksPerRow(4);
+      else if (w > 480) setBooksPerRow(3);
+      else setBooksPerRow(2);
+    }
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
   }, []);
 
   // Modal scroll lock
@@ -258,6 +314,56 @@ export default function BookTracker() {
     document.addEventListener('paste', onPaste);
     return () => document.removeEventListener('paste', onPaste);
   }, [activeTab]);
+
+  // ─── GSAP book hover animations ───────────────────────────
+  useLayoutEffect(() => {
+    // Kill & clean up previous timelines
+    gsapTimelinesRef.current.forEach(({ tl, card, onEnter, onLeave }) => {
+      tl.kill();
+      card.removeEventListener('mouseenter', onEnter);
+      card.removeEventListener('mouseleave', onLeave);
+    });
+    gsapTimelinesRef.current = [];
+
+    const cards = document.querySelectorAll('.book-card[data-book-id]');
+    cards.forEach(card => {
+      const image   = card.querySelector('.books__image');
+      const effect  = card.querySelector('.books__effect');
+      const light   = card.querySelector('.books__light');
+      const pages   = card.querySelectorAll('.books__page');
+      const shadow  = card.querySelector('.book-contact-shadow');
+      if (!image) return;
+
+      gsap.set(image, { boxShadow: '10px -5px 20px rgba(0,0,0,0.15), 20px 0px 30px rgba(0,0,0,0.15)' });
+      gsap.set(light, { opacity: 0.1 });
+      gsap.set(pages, { x: 0 });
+
+      const tl = gsap.timeline({ paused: true, defaults: { duration: 0.7, ease: 'power2.out' } });
+
+      tl.to(image,   { translateX: -10, scaleX: 0.96, boxShadow: '20px 5px 20px rgba(0,0,0,0.3), 30px 0px 30px rgba(0,0,0,0.15)' }, 0);
+      tl.to(effect,  { marginLeft: 10 }, 0);
+      tl.to(light,   { opacity: 0.2 }, 0);
+      tl.to(shadow,  { width: '85%', opacity: 0.9 }, 0);
+      if (pages[0]) tl.to(pages[0], { x: '2px',  ease: 'power1.inOut' }, 0);
+      if (pages[1]) tl.to(pages[1], { x: '0px',  ease: 'power1.inOut' }, 0);
+      if (pages[2]) tl.to(pages[2], { x: '-2px', ease: 'power1.inOut' }, 0);
+
+      const onEnter = () => tl.play();
+      const onLeave = () => tl.reverse();
+      card.addEventListener('mouseenter', onEnter);
+      card.addEventListener('mouseleave', onLeave);
+      gsapTimelinesRef.current.push({ tl, card, onEnter, onLeave });
+    });
+
+    return () => {
+      gsapTimelinesRef.current.forEach(({ tl, card, onEnter, onLeave }) => {
+        tl.kill();
+        card.removeEventListener('mouseenter', onEnter);
+        card.removeEventListener('mouseleave', onLeave);
+      });
+      gsapTimelinesRef.current = [];
+    };
+  }, [sortedBooks]);
 
   // ─── Supabase ──────────────────────────────────────────────
 
@@ -666,70 +772,113 @@ export default function BookTracker() {
   // ─── Render ────────────────────────────────────────────────
 
   return (
-    <div className="container">
+    <div className="app-shell">
 
-      {/* ── Header ── */}
-      <header className="header">
-        <div className="header-eyebrow">Personal Reading Ledger</div>
-        <h1>My Reading Journey</h1>
-        <div className="header-ornament">
-          <div className="ornament-line" />
-          <div className="ornament-diamond" />
-          <div className="ornament-line r" />
+      {/* ── Sidebar ── */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <div className="sidebar-logo-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            </div>
+            <div>
+              <div className="sidebar-logo-text">Reading Trove</div>
+              <div className="sidebar-logo-sub">Personal Library</div>
+            </div>
+          </div>
         </div>
-        <button
-          className={`header-auth-btn${isOwner ? ' signed-in' : ''}`}
-          onClick={handleAuthBtn}
-          title={isOwner ? 'Sign out' : 'Owner sign in'}
-          aria-label={isOwner ? 'Sign out' : 'Owner sign in'}
-        >
-          {isOwner ? <LockOpenSVG /> : <LockClosedSVG />}
-        </button>
-      </header>
 
-      {/* ── Tabs ── */}
-      {isOwner && <nav aria-label="App sections">
-        <div className="tabs" role="tablist">
-          <div
-            className={`tab${activeTab === 'library' ? ' active' : ''}`}
-            data-tab="library"
+        <nav className="sidebar-nav" aria-label="App sections">
+          <button
+            className={`sidebar-item${activeTab === 'library' || !isOwner ? ' active' : ''}`}
             role="tab"
-            tabIndex={0}
-            aria-selected={activeTab === 'library'}
+            aria-selected={activeTab === 'library' || !isOwner}
             onClick={() => setActiveTab('library')}
-            onKeyDown={e => e.key === 'Enter' && setActiveTab('library')}
-          >Library</div>
+          >
+            <span className="sidebar-item-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </span>
+            <span className="sidebar-item-text">Library</span>
+            {books.length > 0 && <span className="sidebar-badge">{books.length}</span>}
+          </button>
+
           {isOwner && (
-            <div
-              className={`tab${activeTab === 'add' ? ' active' : ''}`}
-              data-tab="add"
+            <button
+              className={`sidebar-item${activeTab === 'add' ? ' active' : ''}`}
               role="tab"
-              tabIndex={0}
               aria-selected={activeTab === 'add'}
               onClick={() => setActiveTab('add')}
-              onKeyDown={e => e.key === 'Enter' && setActiveTab('add')}
-            >Add New</div>
+            >
+              <span className="sidebar-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </span>
+              <span className="sidebar-item-text">Add Book</span>
+            </button>
           )}
+
           {isOwner && (
-            <div
-              className={`tab${activeTab === 'recommendations' ? ' active' : ''}`}
-              data-tab="recommendations"
+            <button
+              className={`sidebar-item${activeTab === 'recommendations' ? ' active' : ''}`}
               role="tab"
-              tabIndex={0}
               aria-selected={activeTab === 'recommendations'}
               onClick={() => setActiveTab('recommendations')}
-              onKeyDown={e => e.key === 'Enter' && setActiveTab('recommendations')}
-            >Discover</div>
+            >
+              <span className="sidebar-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </span>
+              <span className="sidebar-item-text">Discover</span>
+            </button>
           )}
-        </div>
-      </nav>}
+        </nav>
 
-      <main className="content">
+        <div className="sidebar-footer">
+          <button
+            className="sidebar-item theme-toggle-btn"
+            onClick={toggleDark}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{ width: '100%' }}
+          >
+            <span className="sidebar-item-icon">
+              {darkMode ? <SunSVG /> : <MoonSVG />}
+            </span>
+            <span className="sidebar-item-text">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+          <button
+            className={`sidebar-item${isOwner ? ' signed-in' : ''}`}
+            onClick={handleAuthBtn}
+            title={isOwner ? 'Sign out' : 'Owner sign in'}
+            aria-label={isOwner ? 'Sign out' : 'Owner sign in'}
+            style={{ width: '100%' }}
+          >
+            <span className="sidebar-item-icon">
+              {isOwner ? <LockOpenSVG /> : <LockClosedSVG />}
+            </span>
+            <span className="sidebar-item-text">{isOwner ? 'Sign Out' : 'Sign In'}</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main Panel ── */}
+      <div className="main-panel">
+      <main className="main-content">
 
         {/* ── Library tab ── */}
         <div id="library" className={`tab-content${activeTab === 'library' || !isOwner ? ' active' : ''}`}>
-          <h2 className="sr-only">Your Library</h2>
           <div className="section-header">
+            <h2 className="section-title">
+              {selectedYear === 'all' ? 'All Books' : `${selectedYear}`}
+            </h2>
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="yearFilter" className="sr-only">Filter by year</label>
               <select id="yearFilter" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
@@ -756,7 +905,7 @@ export default function BookTracker() {
           </div>
 
           {/* Book grid */}
-          <div id="booksList" className="books-list">
+          <div id="booksList" className="books-list" style={{ gridTemplateColumns: `repeat(${booksPerRow}, 1fr)` }}>
             {sortedBooks.length === 0 ? (
               <div className="empty-state">
                 {selectedYear === 'all' ? (
@@ -774,53 +923,66 @@ export default function BookTracker() {
                   </>
                 )}
               </div>
-            ) : sortedBooks.map(book => (
-              <div
-                key={book.id}
-                className="book-card"
-                data-book-id={book.id}
-                title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
-                onClick={(e) => {
-                  if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
-                    openDetail(book.id);
-                  }
-                }}
-              >
-                <div className="book-cover">
-                  {book.coverImage
-                    ? <img src={book.coverImage} alt={book.title} loading="lazy" />
-                    : '📚'}
-                </div>
-                <div className="book-card-stars" aria-label={`Rating: ${book.rating} out of 5`}>
-                  <Stars rating={book.rating} />
-                </div>
-                {isOwner && (
-                  <>
-                    <button
-                      className="delete-btn-icon"
-                      data-book-id={book.id}
-                      title="Options"
-                      aria-label="Options"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === book.id ? null : book.id);
-                      }}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
-                      </svg>
-                    </button>
-                    <div className={`book-menu${openMenuId === book.id ? ' active' : ''}`} id={`menu-${book.id}`}>
-                      <button className="book-menu-item edit-item" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); openDetailInEdit(book.id); }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z" /></svg>
-                        Edit
-                      </button>
-                      <button className="book-menu-item delete-item" onClick={async (e) => { e.stopPropagation(); setOpenMenuId(null); await handleDeleteBook(book.id); }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
-                        Delete
-                      </button>
+            ) : sortedBooks.map((book, index) => (
+              <div key={book.id} style={{ display: 'contents' }}>
+                <div
+                  className="book-card"
+                  data-book-id={book.id}
+                  title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
+                  onClick={(e) => {
+                    if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
+                      openDetail(book.id);
+                    }
+                  }}
+                >
+                  <div className="books__cover">
+                    <div className="books__back-cover" />
+                    <div className="books__inside">
+                      <div className="books__page" />
+                      <div className="books__page" />
+                      <div className="books__page" />
                     </div>
-                  </>
+                    <div className="books__image">
+                      {book.coverImage
+                        ? <img src={book.coverImage} alt={book.title} loading="lazy" />
+                        : <div className="book-placeholder">📚</div>}
+                      <div className="books__effect" />
+                      <div className="books__light" />
+                    </div>
+                  </div>
+                  <div className="book-contact-shadow" />
+                  {isOwner && (
+                    <>
+                      <button
+                        className="delete-btn-icon"
+                        data-book-id={book.id}
+                        title="Options"
+                        aria-label="Options"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === book.id ? null : book.id);
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
+                        </svg>
+                      </button>
+                      <div className={`book-menu${openMenuId === book.id ? ' active' : ''}`} id={`menu-${book.id}`}>
+                        <button className="book-menu-item edit-item" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); openDetailInEdit(book.id); }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z" /></svg>
+                          Edit
+                        </button>
+                        <button className="book-menu-item delete-item" onClick={async (e) => { e.stopPropagation(); setOpenMenuId(null); await handleDeleteBook(book.id); }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {/* Continuous shelf after every full row, and after the last book */}
+                {((index + 1) % booksPerRow === 0 || index === sortedBooks.length - 1) && (
+                  <div className="shelf-line" aria-hidden="true" />
                 )}
               </div>
             ))}
@@ -967,8 +1129,9 @@ export default function BookTracker() {
         )}
 
       </main>
+      </div>
 
-      {/* ── Book Detail Modal ── */}
+      {/* ── Book Detail Drawer ── */}
       {detailId && (
         <div
           className="book-detail-overlay active"
@@ -979,99 +1142,116 @@ export default function BookTracker() {
           onClick={e => { if (e.target === e.currentTarget) closeDetail(); }}
         >
           <div className="book-detail-modal">
-            <button className="book-detail-close" onClick={closeDetail} aria-label="Close">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
 
-            {/* Left: cover + stars */}
-            <div className={`bd-card-col${detailMode === 'edit' ? ' editing' : ''}`}>
-              <div className="bd-cover-wrap">
-                <div className="bd-cover" id="bdCoverEl">
-                  {(detailEditCover !== undefined ? detailEditCover : detailBook?.coverImage)
-                    ? <img src={detailEditCover !== undefined ? detailEditCover : detailBook.coverImage} alt={detailBook?.title} loading="lazy" />
-                    : '📚'}
-                </div>
-                {detailMode === 'edit' && (
-                  <>
-                    <label className="bd-cover-edit-btn" htmlFor="bdCoverInput" title="Change cover" style={{ opacity: 1, pointerEvents: 'auto' }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-                      Change
-                    </label>
-                    <input type="file" id="bdCoverInput" accept="image/png,image/jpeg,image/jpg" style={{ display: 'none' }}
-                      onChange={e => { handleDetailEditCover(e.target.files[0]); e.target.value = ''; }} />
-                  </>
-                )}
-              </div>
-              <div className="bd-stars" id="bdStarsEl" role={detailMode === 'view' ? 'img' : undefined} aria-label={detailMode === 'view' ? `Rating: ${detailBook?.rating} out of 5` : undefined}>
-                {detailMode === 'view' ? (
-                  <Stars rating={detailBook?.rating ?? 0} />
-                ) : (
-                  <div style={{ display: 'flex', gap: 4 }} onMouseLeave={() => setDetailEditRatingHover(0)}>
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <button
-                        key={i}
-                        className={`bd-star-interactive${(detailEditRatingHover || detailEditRating) >= i ? ' active' : ''}`}
-                        aria-label={`Rate ${i} out of 5`}
-                        onClick={() => setDetailEditRating(i)}
-                        onMouseEnter={() => setDetailEditRatingHover(i)}
-                      >
-                        {(detailEditRatingHover || detailEditRating) >= i ? <StarFillSVG /> : <StarEmptySVG />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Sticky header with close button */}
+            <div className="bd-drawer-header">
+              <button className="book-detail-close" onClick={closeDetail} aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
 
-            {/* Right: info */}
-            <div className="bd-info">
+            {/* Scrollable body */}
+            <div className="bd-drawer-body">
 
-              {/* View mode */}
-              {detailMode === 'view' && (
-                <div id="bdView" style={{ display: 'flex' }}>
-                  <div>
-                    <div className="bd-title" id="bdTitle">{detailBook?.title}</div>
-                    <div className="bd-author">{detailBook?.author ? 'by ' + detailBook.author : ''}</div>
+              {/* Cover row — cover image + meta beside it */}
+              <div className={`bd-cover-row${detailMode === 'edit' ? ' editing' : ''}`}>
+                <div className="bd-cover-wrap">
+                  <div className="bd-cover" id="bdCoverEl">
+                    {(detailEditCover !== undefined ? detailEditCover : detailBook?.coverImage)
+                      ? <img src={detailEditCover !== undefined ? detailEditCover : detailBook.coverImage} alt={detailBook?.title} loading="lazy" />
+                      : '📚'}
                   </div>
-                  <div className="bd-genre-badge">{detailBook?.genre}</div>
-                  <div className="bd-synopsis">{detailBook?.synopsis || 'No synopsis available.'}</div>
-                  <div className="bd-footer">
-                    <span className="bd-meta">{detailBook?.dateFinished ? 'Finished on ' + formatDateDisplay(detailBook.dateFinished) : ''}</span>
-                    <span className="bd-meta">{detailBook?.apiRating ? 'Goodreads rating — ' + detailBook.apiRating : ''}</span>
-                    {isOwner && (
-                      <div className="bd-actions">
-                        <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
-                        <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>
+                  {detailMode === 'edit' && (
+                    <>
+                      <label className="bd-cover-edit-btn" htmlFor="bdCoverInput" title="Change cover">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                        Change
+                      </label>
+                      <input type="file" id="bdCoverInput" accept="image/png,image/jpeg,image/jpg" style={{ display: 'none' }}
+                        onChange={e => { handleDetailEditCover(e.target.files[0]); e.target.value = ''; }} />
+                    </>
+                  )}
+                </div>
+
+                <div className="bd-cover-meta">
+                  {detailMode === 'view' ? (
+                    <>
+                      <div className="bd-title" id="bdTitle">{detailBook?.title}</div>
+                      <div className="bd-author">{detailBook?.author ? 'by ' + detailBook.author : ''}</div>
+                      <div className="bd-genre-badge">{detailBook?.genre}</div>
+                      <div className="bd-stars" role="img" aria-label={`Rating: ${detailBook?.rating} out of 5`}>
+                        <Stars rating={detailBook?.rating ?? 0} />
                       </div>
-                    )}
-                  </div>
+                    </>
+                  ) : (
+                    <>
+                      <input type="text" className="bd-edit-input bd-edit-title-input" aria-label="Title" placeholder="Book title..." value={detailEditTitle} onChange={e => setDetailEditTitle(e.target.value)} />
+                      <input type="text" className="bd-edit-input" aria-label="Author" placeholder="Author..." value={detailEditAuthor} onChange={e => setDetailEditAuthor(e.target.value)} />
+                      <select className="bd-edit-select" aria-label="Genre" value={detailEditGenre} onChange={e => setDetailEditGenre(e.target.value)}>
+                        {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                      <div className="bd-stars" onMouseLeave={() => setDetailEditRatingHover(0)}>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <button
+                            key={i}
+                            className={`bd-star-interactive${(detailEditRatingHover || detailEditRating) >= i ? ' active' : ''}`}
+                            aria-label={`Rate ${i} out of 5`}
+                            onClick={() => setDetailEditRating(i)}
+                            onMouseEnter={() => setDetailEditRatingHover(i)}
+                          >
+                            {(detailEditRatingHover || detailEditRating) >= i ? <StarFillSVG /> : <StarEmptySVG />}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
+
+              {/* View mode: synopsis + metadata */}
+              {detailMode === 'view' && (
+                <>
+                  <div className="bd-synopsis">{detailBook?.synopsis || 'No synopsis available.'}</div>
+                  {(detailBook?.dateFinished || detailBook?.apiRating) && (
+                    <div className="bd-meta-list">
+                      {detailBook?.dateFinished && <span className="bd-meta">Finished on {formatDateDisplay(detailBook.dateFinished)}</span>}
+                      {detailBook?.apiRating && <span className="bd-meta">Goodreads rating — {detailBook.apiRating}</span>}
+                    </div>
+                  )}
+                </>
               )}
 
-              {/* Edit mode */}
+              {/* Edit mode: synopsis + date (cover-meta has title/author/genre/stars) */}
               {detailMode === 'edit' && (
-                <div id="bdEdit" style={{ display: 'flex' }}>
-                  <input type="text" className="bd-edit-input bd-edit-title-input" aria-label="Title" placeholder="Book title..." value={detailEditTitle} onChange={e => setDetailEditTitle(e.target.value)} />
-                  <input type="text" className="bd-edit-input" aria-label="Author" placeholder="Author..." value={detailEditAuthor} onChange={e => setDetailEditAuthor(e.target.value)} />
-                  <select className="bd-edit-select" aria-label="Genre" value={detailEditGenre} onChange={e => setDetailEditGenre(e.target.value)}>
-                    {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
+                <>
                   <textarea className="bd-edit-textarea" aria-label="Synopsis" placeholder="Synopsis..." value={detailEditSynopsis} onChange={e => setDetailEditSynopsis(e.target.value)} />
-                  <div className="bd-edit-footer">
-                    <div className="bd-edit-date-wrap">
-                      <label className="bd-edit-label" htmlFor="bdEditDate">Date Finished</label>
-                      <input type="date" className="bd-edit-input" id="bdEditDate" style={{ width: 'auto' }} value={detailEditDate} onChange={e => setDetailEditDate(e.target.value)} />
-                    </div>
-                    <div className="bd-actions">
-                      <button className="bd-btn bd-btn-cancel" onClick={exitEditMode}>Cancel</button>
-                      <button className="bd-btn bd-btn-save" onClick={saveDetailChanges}>Save Changes</button>
-                    </div>
+                  <div className="bd-edit-date-wrap">
+                    <label className="bd-edit-label" htmlFor="bdEditDate">Date Finished</label>
+                    <input type="date" className="bd-edit-input" id="bdEditDate" style={{ width: 'auto' }} value={detailEditDate} onChange={e => setDetailEditDate(e.target.value)} />
                   </div>
-                </div>
+                </>
+              )}
+
+            </div>
+
+            {/* Sticky footer — CTAs always visible at bottom */}
+            <div className="bd-drawer-footer">
+              {detailMode === 'view' && isOwner && (
+                <>
+                  <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
+                  <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>
+                </>
+              )}
+              {detailMode === 'edit' && (
+                <>
+                  <button className="bd-btn bd-btn-cancel" onClick={exitEditMode}>Cancel</button>
+                  <button className="bd-btn bd-btn-save" onClick={saveDetailChanges}>Save Changes</button>
+                </>
               )}
             </div>
+
           </div>
         </div>
       )}
@@ -1116,6 +1296,11 @@ export default function BookTracker() {
         </span>
         <button className="undo-toast-btn" onClick={handleUndo}>Undo</button>
       </div>
+
+      <p className="design-credit">
+        Book animation design by{' '}
+        <a href="https://codepen.io/filipz" target="_blank" rel="noopener noreferrer">Filip Zrnzevic</a>
+      </p>
 
     </div>
   );

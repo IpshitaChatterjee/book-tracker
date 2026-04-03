@@ -1,28 +1,33 @@
-import { Playfair_Display, EB_Garamond } from 'next/font/google';
+import { Plus_Jakarta_Sans, Crimson_Text } from 'next/font/google';
 import './globals.css';
 
-const playfair = Playfair_Display({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-playfair',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
   display: 'swap',
 });
 
-const garamond = EB_Garamond({
+const crimson = Crimson_Text({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-garamond',
+  weight: ['400', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-heading',
   display: 'swap',
 });
 
 export const metadata = {
-  title: 'My Reading Journey',
+  title: 'Reading Trove',
   description: 'Personal Reading Ledger',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${garamond.variable}`}>
+    <html lang="en" className={`${jakarta.variable} ${crimson.variable}`}>
+      <head>
+        {/* Prevent flash of wrong theme before React hydrates */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('rt_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t===null&&d))document.documentElement.classList.add('dark');})();` }} />
+      </head>
       <body>{children}</body>
     </html>
   );
