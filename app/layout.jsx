@@ -19,6 +19,9 @@ const crimson = Crimson_Text({
 export const metadata = {
   title: 'Reading Trove',
   description: 'Personal Reading Ledger',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }) {
