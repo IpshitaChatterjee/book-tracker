@@ -1,4 +1,5 @@
 import { Plus_Jakarta_Sans, Crimson_Text } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -31,7 +32,10 @@ export default function RootLayout({ children }) {
         {/* Prevent flash of wrong theme before React hydrates */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('rt_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t===null&&d))document.documentElement.classList.add('dark');})();` }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
