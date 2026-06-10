@@ -799,7 +799,7 @@ export default function BookTracker() {
         const parsed = JSON.parse(json);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setRecs(parsed);
-          parsed.forEach((rec, i) => fetchCoverForRec(rec, i));
+          parsed.forEach((rec, i) => setTimeout(() => fetchCoverForRec(rec, i), i * 400));
         } else {
           throw new Error();
         }
