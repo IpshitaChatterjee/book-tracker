@@ -196,6 +196,7 @@ export default function BookTracker() {
   const [recsError, setRecsError] = useState(false);
   const [recCovers, setRecCovers] = useState({});
   const [detailRec, setDetailRec] = useState(null);
+  const [openRecMenuId, setOpenRecMenuId] = useState(null);
 
   // Lookup debounce
   const lookupTimerRef = useRef(null);
@@ -291,6 +292,7 @@ export default function BookTracker() {
     function onClickOutside(e) {
       if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
         setOpenMenuId(null);
+        setOpenRecMenuId(null);
       }
     }
     document.addEventListener('click', onClickOutside);
@@ -750,6 +752,17 @@ export default function BookTracker() {
 
   // ─── Recommendations ───────────────────────────────────────
 
+  async function handleMoveRecToTBR(rec, cover) {
+    await supabase.from('tbr_books').insert([{
+      user_id: OWNER_UUID,
+      title: rec.title,
+      author: rec.author,
+      genre: rec.genre,
+      cover_image: cover || null,
+      synopsis: rec.reason,
+    }]);
+  }
+
   async function fetchCoverForRec(rec, index) {
     try {
       const params = new URLSearchParams({ title: rec.title, author: rec.author, limit: 1, fields: 'cover_i' });
@@ -1073,7 +1086,7 @@ export default function BookTracker() {
                         className="book-card"
                         data-book-id={`rec-${i}`}
                         title={`${rec.title}${rec.author ? ' — ' + rec.author : ''}`}
-                        onClick={() => setDetailRec({ ...rec, cover: recCovers[i] || null })}
+                        onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailRec({ ...rec, cover: recCovers[i] || null }); }}
                       >
                         <div className="books__cover">
                           <div className="books__back-cover" />
@@ -1091,6 +1104,26 @@ export default function BookTracker() {
                           </div>
                         </div>
                         <div className="book-contact-shadow" />
+                        {isOwner && (
+                          <>
+                            <button
+                              className="delete-btn-icon"
+                              title="Options"
+                              aria-label="Options"
+                              onClick={e => { e.stopPropagation(); setOpenRecMenuId(openRecMenuId === i ? null : i); }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>
+                              </svg>
+                            </button>
+                            <div className={`book-menu${openRecMenuId === i ? ' active' : ''}`}>
+                              <button className="book-menu-item edit-item" onClick={async e => { e.stopPropagation(); setOpenRecMenuId(null); await handleMoveRecToTBR(rec, recCovers[i]); }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                Move to TBR
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                       {((i + 1) % booksPerRow === 0 || i === recs.length - 1) && (
                         <div className="shelf-line" aria-hidden="true" />
