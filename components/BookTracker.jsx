@@ -752,12 +752,18 @@ export default function BookTracker() {
 
   async function fetchCoverForRec(rec, index) {
     try {
-      const q = encodeURIComponent(`intitle:${rec.title} inauthor:${rec.author}`);
-      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
-      const data = await res.json();
-      const thumb = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-      if (thumb) {
-        setRecCovers(prev => ({ ...prev, [index]: thumb.replace('http://', 'https://') }));
+      const queries = [
+        `${rec.title} ${rec.author}`,
+        rec.title,
+      ];
+      for (const q of queries) {
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1`);
+        const data = await res.json();
+        const thumb = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+        if (thumb) {
+          setRecCovers(prev => ({ ...prev, [index]: thumb.replace('http://', 'https://') }));
+          return;
+        }
       }
     } catch { /* silently skip */ }
   }
