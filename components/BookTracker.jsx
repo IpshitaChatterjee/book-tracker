@@ -761,6 +761,7 @@ export default function BookTracker() {
       cover_image: cover || null,
       synopsis: rec.reason,
     }]);
+    setRecs(prev => prev.filter(r => r.title !== rec.title));
   }
 
   async function fetchCoverForRec(rec, index) {
@@ -1460,6 +1461,12 @@ export default function BookTracker() {
                 Find on Goodreads →
               </a>
             </div>
+            {isOwner && (
+              <div className="bd-drawer-footer">
+                <button className="bd-btn bd-btn-cancel" onClick={() => setDetailRec(null)}>Close</button>
+                <button className="bd-btn bd-btn-save" onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</button>
+              </div>
+            )}
           </div>
         </div>
       )}
