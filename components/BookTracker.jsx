@@ -611,6 +611,21 @@ export default function BookTracker() {
     showUndo(deletedCacheRef.current);
   }
 
+  async function handleMoveToTBR(bookId) {
+    const book = books.find(b => b.id === bookId);
+    if (!book) return;
+    setBooks(prev => prev.filter(b => b.id !== bookId));
+    await supabase.from('tbr_books').insert([{
+      user_id: OWNER_UUID,
+      title: book.title,
+      author: book.author,
+      genre: book.genre,
+      cover_image: book.coverImage,
+      synopsis: book.synopsis,
+    }]);
+    await supabase.from('books').delete().eq('id', bookId);
+  }
+
   // ─── Detail modal ──────────────────────────────────────────
 
   function openDetail(bookId) {
@@ -797,8 +812,7 @@ export default function BookTracker() {
           >
             <span className="sidebar-item-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </span>
             <span className="sidebar-item-text">Completed</span>
@@ -810,7 +824,7 @@ export default function BookTracker() {
           >
             <span className="sidebar-item-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
               </svg>
             </span>
             <span className="sidebar-item-text">To Be Read</span>
@@ -981,6 +995,10 @@ export default function BookTracker() {
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z" /></svg>
                           Edit
                         </button>
+                        <button className="book-menu-item edit-item" onClick={async (e) => { e.stopPropagation(); setOpenMenuId(null); await handleMoveToTBR(book.id); }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                          Move to TBR
+                        </button>
                         <button className="book-menu-item delete-item" onClick={async (e) => { e.stopPropagation(); setOpenMenuId(null); await handleDeleteBook(book.id); }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                           Delete
@@ -1083,56 +1101,54 @@ export default function BookTracker() {
             {/* Scrollable body */}
             <div className="bd-drawer-body">
 
-              {/* Cover row — cover image + meta beside it */}
-              <div className={`bd-cover-row${detailMode === 'edit' ? ' editing' : ''}`}>
-                <div className="bd-cover-wrap">
-                  <div className="bd-cover" id="bdCoverEl">
-                    {(detailEditCover !== undefined ? detailEditCover : detailBook?.coverImage)
-                      ? <img src={detailEditCover !== undefined ? detailEditCover : detailBook.coverImage} alt={detailBook?.title} loading="lazy" />
+              {/* Cover — centered view or side-by-side edit */}
+              {detailMode === 'view' ? (
+                <div className="bd-centered-layout">
+                  <div className="bd-cover-lg">
+                    {detailBook?.coverImage
+                      ? <img src={detailBook.coverImage} alt={detailBook?.title} loading="lazy" />
                       : '📚'}
                   </div>
-                  {detailMode === 'edit' && (
-                    <>
+                  <div className="bd-title" id="bdTitle">{detailBook?.title}</div>
+                  <div className="bd-author">{detailBook?.author ? 'by ' + detailBook.author : ''}</div>
+                  {detailBook?.genre && <span className="genre-badge">{detailBook.genre}</span>}
+                  <div className="bd-stars" role="img" aria-label={`Rating: ${detailBook?.rating} out of 5`}>
+                    <Stars rating={detailBook?.rating ?? 0} />
+                  </div>
+                </div>
+              ) : (
+                <div className="bd-cover-row editing">
+                  <div className="bd-cover-wrap">
+                    <div className="bd-cover" id="bdCoverEl">
+                      {(detailEditCover !== undefined ? detailEditCover : detailBook?.coverImage)
+                        ? <img src={detailEditCover !== undefined ? detailEditCover : detailBook.coverImage} alt={detailBook?.title} loading="lazy" />
+                        : '📚'}
                       <label className="bd-cover-edit-btn" htmlFor="bdCoverInput" title="Change cover">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
                         Change
                       </label>
-                      <input type="file" id="bdCoverInput" accept="image/png,image/jpeg,image/jpg" style={{ display: 'none' }}
-                        onChange={e => { handleDetailEditCover(e.target.files[0]); e.target.value = ''; }} />
-                    </>
-                  )}
+                    </div>
+                    <input type="file" id="bdCoverInput" accept="image/png,image/jpeg,image/jpg" style={{ display: 'none' }}
+                      onChange={e => { handleDetailEditCover(e.target.files[0]); e.target.value = ''; }} />
+                  </div>
+                  <div className="bd-cover-meta">
+                    <input type="text" className="bd-edit-input bd-edit-title-input" aria-label="Title" placeholder="Book title..." value={detailEditTitle} onChange={e => setDetailEditTitle(e.target.value)} />
+                    <input type="text" className="bd-edit-input" aria-label="Author" placeholder="Author..." value={detailEditAuthor} onChange={e => setDetailEditAuthor(e.target.value)} />
+                    <select className="bd-edit-select" aria-label="Genre" value={detailEditGenre} onChange={e => setDetailEditGenre(e.target.value)}>
+                      {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <div className="bd-stars">
+                      <RatingStars
+                        rating={detailEditRating}
+                        hover={detailEditRatingHover}
+                        onRate={setDetailEditRating}
+                        onHover={setDetailEditRatingHover}
+                        onLeave={() => setDetailEditRatingHover(0)}
+                      />
+                    </div>
+                  </div>
                 </div>
-
-                <div className="bd-cover-meta">
-                  {detailMode === 'view' ? (
-                    <>
-                      <div className="bd-title" id="bdTitle">{detailBook?.title}</div>
-                      <div className="bd-author">{detailBook?.author ? 'by ' + detailBook.author : ''}</div>
-                      <div className="bd-genre-badge">{detailBook?.genre}</div>
-                      <div className="bd-stars" role="img" aria-label={`Rating: ${detailBook?.rating} out of 5`}>
-                        <Stars rating={detailBook?.rating ?? 0} />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <input type="text" className="bd-edit-input bd-edit-title-input" aria-label="Title" placeholder="Book title..." value={detailEditTitle} onChange={e => setDetailEditTitle(e.target.value)} />
-                      <input type="text" className="bd-edit-input" aria-label="Author" placeholder="Author..." value={detailEditAuthor} onChange={e => setDetailEditAuthor(e.target.value)} />
-                      <select className="bd-edit-select" aria-label="Genre" value={detailEditGenre} onChange={e => setDetailEditGenre(e.target.value)}>
-                        {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
-                      </select>
-                      <div className="bd-stars">
-                        <RatingStars
-                          rating={detailEditRating}
-                          hover={detailEditRatingHover}
-                          onRate={setDetailEditRating}
-                          onHover={setDetailEditRatingHover}
-                          onLeave={() => setDetailEditRatingHover(0)}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* View mode: synopsis + metadata */}
               {detailMode === 'view' && (

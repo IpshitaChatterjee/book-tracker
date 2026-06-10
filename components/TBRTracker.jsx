@@ -271,8 +271,7 @@ export default function TBRTracker() {
           <a href="/" className="sidebar-item">
             <span className="sidebar-item-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </span>
             <span className="sidebar-item-text">Completed</span>
@@ -281,7 +280,7 @@ export default function TBRTracker() {
           <a href="/tbr" className="sidebar-item active">
             <span className="sidebar-item-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
               </svg>
             </span>
             <span className="sidebar-item-text">To Be Read</span>
@@ -464,19 +463,15 @@ export default function TBRTracker() {
               </button>
             </div>
             <div className="bd-drawer-body" style={{ gap: 16 }}>
-              <div className="bd-cover-row">
-                <div className="bd-cover-wrap">
-                  <div className="bd-cover">
-                    {detailBook.coverImage
-                      ? <img src={detailBook.coverImage} alt={detailBook.title} />
-                      : '📚'}
-                  </div>
+              <div className="bd-centered-layout">
+                <div className="bd-cover-lg">
+                  {detailBook.coverImage
+                    ? <img src={detailBook.coverImage} alt={detailBook.title} />
+                    : '📚'}
                 </div>
-                <div className="bd-cover-meta" style={{ justifyContent: 'center' }}>
-                  <div style={{ fontFamily: 'var(--font-heading), Georgia, serif', fontSize: 22, fontWeight: 400, color: 'var(--text)', lineHeight: 1.2 }}>{detailBook.title}</div>
-                  {detailBook.author && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>by {detailBook.author}</div>}
-                  {detailBook.genre && <span className="genre-badge" style={{ alignSelf: 'flex-start' }}>{detailBook.genre}</span>}
-                </div>
+                <div className="bd-title">{detailBook.title}</div>
+                {detailBook.author && <div className="bd-author">by {detailBook.author}</div>}
+                {detailBook.genre && <span className="genre-badge">{detailBook.genre}</span>}
               </div>
               {detailBook.synopsis && (
                 <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{detailBook.synopsis}</p>
@@ -510,37 +505,33 @@ export default function TBRTracker() {
                 </svg>
               </button>
             </div>
-            <div className="bd-drawer-body" style={{ gap: 20 }}>
-              <div className="bd-cover-row editing">
-                <div className="bd-cover-wrap">
-                  <div className="bd-cover">
-                    {completingBook.coverImage
-                      ? <img src={completingBook.coverImage} alt={completingBook.title} />
-                      : '📚'}
-                  </div>
+            <div className="bd-drawer-body" style={{ gap: 16 }}>
+              <div className="bd-centered-layout">
+                <div className="bd-cover-lg">
+                  {completingBook.coverImage
+                    ? <img src={completingBook.coverImage} alt={completingBook.title} />
+                    : '📚'}
                 </div>
-                <div className="bd-cover-meta" style={{ justifyContent: 'center' }}>
-                  <div style={{ fontFamily: 'var(--font-heading), Georgia, serif', fontSize: 22, fontWeight: 400, color: 'var(--text)', lineHeight: 1.2 }}>{completingBook.title}</div>
-                  {completingBook.author && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>by {completingBook.author}</div>}
-                  {completingBook.genre && <span className="genre-badge" style={{ alignSelf: 'flex-start' }}>{completingBook.genre}</span>}
-                  <div className="rating-input" onMouseLeave={() => setCompletingRatingHover(0)}>
-                    {[1,2,3,4,5].map(i => (
-                      <button key={i} type="button"
-                        className={`bd-star-interactive${(completingRatingHover || completingRating) >= i ? ' active' : ''}`}
-                        aria-label={`${i} star${i > 1 ? 's' : ''}`}
-                        onClick={() => setCompletingRating(i)}
-                        onMouseEnter={() => setCompletingRatingHover(i)}>
-                        {(completingRatingHover || completingRating) >= i
-                          ? <svg className="star-icon star-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                          : <svg className="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        }
-                      </button>
-                    ))}
-                  </div>
-                  <input type="date" className="bd-edit-input" id="completingDate"
-                    style={{ width: 'auto' }} value={completingDate}
-                    onChange={e => setCompletingDate(e.target.value)} />
+                <div className="bd-title">{completingBook.title}</div>
+                {completingBook.author && <div className="bd-author">by {completingBook.author}</div>}
+                {completingBook.genre && <span className="genre-badge">{completingBook.genre}</span>}
+                <div className="rating-input" onMouseLeave={() => setCompletingRatingHover(0)}>
+                  {[1,2,3,4,5].map(i => (
+                    <button key={i} type="button"
+                      className={`bd-star-interactive${(completingRatingHover || completingRating) >= i ? ' active' : ''}`}
+                      aria-label={`${i} star${i > 1 ? 's' : ''}`}
+                      onClick={() => setCompletingRating(i)}
+                      onMouseEnter={() => setCompletingRatingHover(i)}>
+                      {(completingRatingHover || completingRating) >= i
+                        ? <svg className="star-icon star-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        : <svg className="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      }
+                    </button>
+                  ))}
                 </div>
+                <input type="date" className="bd-edit-input" id="completingDate"
+                  style={{ width: 'auto' }} value={completingDate}
+                  onChange={e => setCompletingDate(e.target.value)} />
               </div>
               {completingBook.synopsis && (
                 <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{completingBook.synopsis}</p>

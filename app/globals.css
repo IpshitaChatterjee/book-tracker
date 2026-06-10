@@ -1139,6 +1139,34 @@ button:active { transform: scale(0.96); }
   align-items: flex-start;
 }
 
+.bd-centered-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.bd-cover-lg {
+  width: 160px;
+  height: 240px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-md), inset 0 0 0 1px rgba(0,0,0,0.06);
+}
+
+.bd-cover-lg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.bd-centered-layout .bd-title { font-size: 22px; }
+.bd-centered-layout .bd-author { text-align: center; }
+.bd-centered-layout .bd-stars { justify-content: center; }
+
 .bd-cover {
   width: 108px; height: 162px;
   background: var(--border);
