@@ -1072,6 +1072,7 @@ export default function BookTracker() {
 
             {/* Sticky header with close button */}
             <div className="bd-drawer-header">
+              <span className="bd-drawer-title">Book Details</span>
               <button className="book-detail-close" onClick={closeDetail} aria-label="Close">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -1137,10 +1138,9 @@ export default function BookTracker() {
               {detailMode === 'view' && (
                 <>
                   <div className="bd-synopsis">{detailBook?.synopsis || 'No synopsis available.'}</div>
-                  {(detailBook?.dateFinished || detailBook?.apiRating) && (
+                  {detailBook?.dateFinished && (
                     <div className="bd-meta-list">
-                      {detailBook?.dateFinished && <span className="bd-meta">Finished on {formatDateDisplay(detailBook.dateFinished)}</span>}
-                      {detailBook?.apiRating && <span className="bd-meta">Goodreads rating — {detailBook.apiRating}</span>}
+                      <span className="bd-meta">Finished on {formatDateDisplay(detailBook.dateFinished)}</span>
                     </div>
                   )}
                 </>
@@ -1151,7 +1151,7 @@ export default function BookTracker() {
                 <>
                   <textarea className="bd-edit-textarea" aria-label="Synopsis" placeholder="Synopsis..." value={detailEditSynopsis} onChange={e => setDetailEditSynopsis(e.target.value)} />
                   <div className="bd-edit-date-wrap">
-                    <label className="bd-edit-label" htmlFor="bdEditDate">Date Finished</label>
+                    <label className="bd-edit-label" htmlFor="bdEditDate">Date finished</label>
                     <input type="date" className="bd-edit-input" id="bdEditDate" style={{ width: 'auto' }} value={detailEditDate} onChange={e => setDetailEditDate(e.target.value)} />
                   </div>
                 </>

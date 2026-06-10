@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 import AddBookDrawer from './AddBookDrawer';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 
@@ -44,6 +45,14 @@ export default function TBRTracker() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [books, setBooks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [booksPerRow, setBooksPerRow] = useState(6);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [detailBook, setDetailBook] = useState(null);
+  const [completingBook, setCompletingBook] = useState(null);
+  const [completingRating, setCompletingRating] = useState(0);
+  const [completingRatingHover, setCompletingRatingHover] = useState(0);
+  const [completingDate, setCompletingDate] = useState('');
+  const gsapTimelinesRef = useRef([]);
 
   useEffect(() => {
     const saved = localStorage.getItem('rt_theme');
@@ -57,6 +66,76 @@ export default function TBRTracker() {
     setIsOwner(localStorage.getItem('bt_owner') === '1');
     loadBooks();
   }, []);
+
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener('click', onClickOutside);
+    return () => document.removeEventListener('click', onClickOutside);
+  }, []);
+
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth;
+      if (w > 960) setBooksPerRow(6);
+      else if (w > 768) setBooksPerRow(4);
+      else if (w > 480) setBooksPerRow(3);
+      else setBooksPerRow(2);
+    }
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  useLayoutEffect(() => {
+    gsapTimelinesRef.current.forEach(({ tl, card, onEnter, onLeave }) => {
+      tl.kill();
+      card.removeEventListener('mouseenter', onEnter);
+      card.removeEventListener('mouseleave', onLeave);
+    });
+    gsapTimelinesRef.current = [];
+
+    const cards = document.querySelectorAll('.tbr-book-card[data-book-id]');
+    cards.forEach(card => {
+      const image  = card.querySelector('.books__image');
+      const effect = card.querySelector('.books__effect');
+      const light  = card.querySelector('.books__light');
+      const pages  = card.querySelectorAll('.books__page');
+      const shadow = card.querySelector('.book-contact-shadow');
+      if (!image) return;
+
+      gsap.set(image, { boxShadow: '10px -5px 20px rgba(0,0,0,0.15), 20px 0px 30px rgba(0,0,0,0.15)' });
+      gsap.set(light, { opacity: 0.1 });
+      gsap.set(pages, { x: 0 });
+
+      const tl = gsap.timeline({ paused: true, defaults: { duration: 0.7, ease: 'power2.out' } });
+      tl.to(image,   { translateX: -10, scaleX: 0.96, boxShadow: '20px 5px 20px rgba(0,0,0,0.3), 30px 0px 30px rgba(0,0,0,0.15)' }, 0);
+      tl.to(effect,  { marginLeft: 10 }, 0);
+      tl.to(light,   { opacity: 0.2 }, 0);
+      tl.to(shadow,  { width: '85%', opacity: 0.9 }, 0);
+      if (pages[0]) tl.to(pages[0], { x: '2px',  ease: 'power1.inOut' }, 0);
+      if (pages[1]) tl.to(pages[1], { x: '0px',  ease: 'power1.inOut' }, 0);
+      if (pages[2]) tl.to(pages[2], { x: '-2px', ease: 'power1.inOut' }, 0);
+
+      const onEnter = () => tl.play();
+      const onLeave = () => tl.reverse();
+      card.addEventListener('mouseenter', onEnter);
+      card.addEventListener('mouseleave', onLeave);
+      gsapTimelinesRef.current.push({ tl, card, onEnter, onLeave });
+    });
+
+    return () => {
+      gsapTimelinesRef.current.forEach(({ tl, card, onEnter, onLeave }) => {
+        tl.kill();
+        card.removeEventListener('mouseenter', onEnter);
+        card.removeEventListener('mouseleave', onLeave);
+      });
+      gsapTimelinesRef.current = [];
+    };
+  }, [books]);
 
   async function loadBooks() {
     try {
@@ -75,6 +154,7 @@ export default function TBRTracker() {
         rating: b.rating || 0,
         coverImage: b.cover_image || null,
         synopsis: b.synopsis || '',
+        createdAt: b.created_at || null,
       })));
     } catch (err) {
       console.error('Error loading TBR books:', err);
@@ -107,12 +187,43 @@ export default function TBRTracker() {
         rating: b.rating || 0,
         coverImage: b.cover_image || null,
         synopsis: b.synopsis || '',
+        createdAt: b.created_at || null,
       }, ...prev]);
     } catch (err) {
       console.error('Error saving TBR book:', err);
     } finally {
       setShowDrawer(false);
     }
+  }
+
+  async function handleDelete(id) {
+    setBooks(prev => prev.filter(b => b.id !== id));
+    await supabase.from('tbr_books').delete().eq('id', id);
+  }
+
+  function openCompleteModal(book) {
+    setCompletingBook(book);
+    setCompletingRating(0);
+    setCompletingRatingHover(0);
+    setCompletingDate(new Date().toISOString().split('T')[0]);
+  }
+
+  async function handleConfirmComplete() {
+    if (!completingBook) return;
+    const book = completingBook;
+    setCompletingBook(null);
+    setBooks(prev => prev.filter(b => b.id !== book.id));
+    await supabase.from('books').insert([{
+      user_id: OWNER_UUID,
+      title: book.title,
+      author: book.author,
+      genre: book.genre,
+      rating: completingRating || null,
+      date_finished: completingDate,
+      cover_image: book.coverImage,
+      synopsis: book.synopsis,
+    }]);
+    await supabase.from('tbr_books').delete().eq('id', book.id);
   }
 
   function toggleDark() {
@@ -123,6 +234,19 @@ export default function TBRTracker() {
   }
 
   const allGenres = [...new Set(books.map(b => b.genre).filter(Boolean))];
+
+  const genreCounts = {};
+  books.forEach(b => { if (b.genre) genreCounts[b.genre] = (genreCounts[b.genre] || 0) + 1; });
+  const topGenre = Object.keys(genreCounts).length > 0
+    ? Object.keys(genreCounts).reduce((a, b) => genreCounts[a] > genreCounts[b] ? a : b)
+    : '—';
+
+  const now = new Date();
+  const addedThisMonth = books.filter(b => {
+    if (!b.createdAt) return false;
+    const d = new Date(b.createdAt);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
 
   return (
     <div className="app-shell">
@@ -212,6 +336,24 @@ export default function TBRTracker() {
             )}
           </div>
 
+          {/* Stats */}
+          {!isLoading && books.length > 0 && (
+            <div className="stats">
+              <div className="stat-card">
+                <div className="stat-number">{books.length}</div>
+                <div className="stat-label">Books TBR</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">{addedThisMonth}</div>
+                <div className="stat-label">Added This Month</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-genre">{topGenre}</div>
+                <div className="stat-label">Top Genre</div>
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="loading-fullpage">
               <div className="page-spinner" aria-label="Loading" />
@@ -231,20 +373,60 @@ export default function TBRTracker() {
               )}
             </div>
           ) : (
-            <div className="tbr-list">
-              {books.map(book => (
-                <div key={book.id} className="tbr-card">
-                  <div className="tbr-cover">
-                    {book.coverImage
-                      ? <img src={book.coverImage} alt={book.title} />
-                      : <span>📚</span>}
+            <div className="books-list" style={{ gridTemplateColumns: `repeat(${booksPerRow}, 1fr)` }}>
+              {books.map((book, index) => (
+                <div key={book.id} style={{ display: 'contents' }}>
+                  <div
+                    className="book-card tbr-book-card"
+                    data-book-id={book.id}
+                    title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
+                    onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailBook(book); }}
+                  >
+                    <div className="books__cover">
+                      <div className="books__back-cover" />
+                      <div className="books__inside">
+                        <div className="books__page" />
+                        <div className="books__page" />
+                        <div className="books__page" />
+                      </div>
+                      <div className="books__image">
+                        {book.coverImage
+                          ? <img src={book.coverImage} alt={book.title} loading="lazy" />
+                          : <div className="book-placeholder">📚</div>}
+                        <div className="books__effect" />
+                        <div className="books__light" />
+                      </div>
+                    </div>
+                    <div className="book-contact-shadow" />
+                    {isOwner && (
+                      <>
+                        <button
+                          className="delete-btn-icon"
+                          data-book-id={book.id}
+                          title="Options"
+                          aria-label="Options"
+                          onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === book.id ? null : book.id); }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
+                          </svg>
+                        </button>
+                        <div className={`book-menu${openMenuId === book.id ? ' active' : ''}`}>
+                          <button className="book-menu-item edit-item" onClick={e => { e.stopPropagation(); setOpenMenuId(null); openCompleteModal(book); }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            Completed
+                          </button>
+                          <button className="book-menu-item delete-item" onClick={async e => { e.stopPropagation(); setOpenMenuId(null); await handleDelete(book.id); }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="tbr-meta">
-                    <div className="tbr-title">{book.title}</div>
-                    {book.author && <div className="tbr-author">by {book.author}</div>}
-                    {book.genre && <span className="genre-badge">{book.genre}</span>}
-                    {book.synopsis && <p className="tbr-synopsis">{book.synopsis}</p>}
-                  </div>
+                  {((index + 1) % booksPerRow === 0 || index === books.length - 1) && (
+                    <div className="shelf-line" aria-hidden="true" />
+                  )}
                 </div>
               ))}
             </div>
@@ -262,6 +444,115 @@ export default function TBRTracker() {
           />
         </main>
       </div>
+
+      {/* ── Book detail drawer ── */}
+      {detailBook && (
+        <div
+          className="book-detail-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tbrDetailTitle"
+          onClick={e => { if (e.target === e.currentTarget) setDetailBook(null); }}
+        >
+          <div className="book-detail-modal">
+            <div className="bd-drawer-header">
+              <span className="bd-drawer-title" id="tbrDetailTitle">Book Details</span>
+              <button className="book-detail-close" onClick={() => setDetailBook(null)} aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="bd-drawer-body" style={{ gap: 16 }}>
+              <div className="bd-cover-row">
+                <div className="bd-cover-wrap">
+                  <div className="bd-cover">
+                    {detailBook.coverImage
+                      ? <img src={detailBook.coverImage} alt={detailBook.title} />
+                      : '📚'}
+                  </div>
+                </div>
+                <div className="bd-cover-meta" style={{ justifyContent: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-heading), Georgia, serif', fontSize: 22, fontWeight: 400, color: 'var(--text)', lineHeight: 1.2 }}>{detailBook.title}</div>
+                  {detailBook.author && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>by {detailBook.author}</div>}
+                  {detailBook.genre && <span className="genre-badge" style={{ alignSelf: 'flex-start' }}>{detailBook.genre}</span>}
+                </div>
+              </div>
+              {detailBook.synopsis && (
+                <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{detailBook.synopsis}</p>
+              )}
+            </div>
+            {isOwner && (
+              <div className="bd-drawer-footer">
+                <button className="bd-btn bd-btn-cancel" onClick={() => setDetailBook(null)}>Close</button>
+                <button className="bd-btn bd-btn-save" onClick={() => { setDetailBook(null); openCompleteModal(detailBook); }}>Mark as Completed</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Mark as Completed modal ── */}
+      {completingBook && (
+        <div
+          className="book-detail-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="completeModalTitle"
+          onClick={e => { if (e.target === e.currentTarget) setCompletingBook(null); }}
+        >
+          <div className="book-detail-modal">
+            <div className="bd-drawer-header">
+              <span className="bd-drawer-title" id="completeModalTitle">Mark as Completed</span>
+              <button className="book-detail-close" onClick={() => setCompletingBook(null)} aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="bd-drawer-body" style={{ gap: 20 }}>
+              <div className="bd-cover-row editing">
+                <div className="bd-cover-wrap">
+                  <div className="bd-cover">
+                    {completingBook.coverImage
+                      ? <img src={completingBook.coverImage} alt={completingBook.title} />
+                      : '📚'}
+                  </div>
+                </div>
+                <div className="bd-cover-meta" style={{ justifyContent: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-heading), Georgia, serif', fontSize: 22, fontWeight: 400, color: 'var(--text)', lineHeight: 1.2 }}>{completingBook.title}</div>
+                  {completingBook.author && <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>by {completingBook.author}</div>}
+                  {completingBook.genre && <span className="genre-badge" style={{ alignSelf: 'flex-start' }}>{completingBook.genre}</span>}
+                  <div className="rating-input" onMouseLeave={() => setCompletingRatingHover(0)}>
+                    {[1,2,3,4,5].map(i => (
+                      <button key={i} type="button"
+                        className={`bd-star-interactive${(completingRatingHover || completingRating) >= i ? ' active' : ''}`}
+                        aria-label={`${i} star${i > 1 ? 's' : ''}`}
+                        onClick={() => setCompletingRating(i)}
+                        onMouseEnter={() => setCompletingRatingHover(i)}>
+                        {(completingRatingHover || completingRating) >= i
+                          ? <svg className="star-icon star-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                          : <svg className="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        }
+                      </button>
+                    ))}
+                  </div>
+                  <input type="date" className="bd-edit-input" id="completingDate"
+                    style={{ width: 'auto' }} value={completingDate}
+                    onChange={e => setCompletingDate(e.target.value)} />
+                </div>
+              </div>
+              {completingBook.synopsis && (
+                <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{completingBook.synopsis}</p>
+              )}
+            </div>
+            <div className="bd-drawer-footer">
+              <button className="bd-btn bd-btn-cancel" onClick={() => setCompletingBook(null)}>Cancel</button>
+              <button className="bd-btn bd-btn-save" onClick={handleConfirmComplete}>Move to Completed</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -1215,7 +1215,7 @@ button:active { transform: scale(0.96); }
 .bd-title {
   font-family: var(--font-heading), Georgia, serif;
   font-size: 26px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   line-height: 1.2;
   letter-spacing: 0;
@@ -1223,13 +1223,12 @@ button:active { transform: scale(0.96); }
 }
 
 .bd-author {
-  font-family: var(--font-heading), Georgia, serif;
-  font-size: 14px;
-  font-style: italic;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 13px;
+  font-style: normal;
   font-weight: 400;
   color: var(--text-muted);
   line-height: 1.4;
-  letter-spacing: 0.01em;
 }
 
 .bd-genre-badge {
@@ -1248,26 +1247,23 @@ button:active { transform: scale(0.96); }
 .bd-stars { display: flex; gap: 3px; align-items: center; }
 
 .bd-synopsis {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
-  color: var(--text-muted);
-  line-height: 1.7;
+  color: var(--text);
+  line-height: 1.6;
   text-wrap: pretty;
+  margin: 0;
 }
 
 .bd-meta-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 2px;
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  margin-top: 2px;
 }
 
 .bd-meta {
   font-size: 12px;
-  color: var(--text-subtle);
+  color: var(--text-muted);
 }
 
 /* Sticky footer — CTAs pinned to bottom */
@@ -1350,7 +1346,6 @@ button:active { transform: scale(0.96); }
   font-weight: 500;
   color: var(--text-subtle);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .bd-star-interactive {
