@@ -194,6 +194,8 @@ export default function BookTracker() {
   const [recs, setRecs] = useState(null);
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsError, setRecsError] = useState(false);
+  const [recCovers, setRecCovers] = useState({});
+  const [detailRec, setDetailRec] = useState(null);
 
   // Lookup debounce
   const lookupTimerRef = useRef(null);
@@ -367,7 +369,7 @@ export default function BookTracker() {
       });
       gsapTimelinesRef.current = [];
     };
-  }, [sortedBooks]);
+  }, [sortedBooks, recs]);
 
   // ─── Supabase ──────────────────────────────────────────────
 
@@ -739,13 +741,33 @@ export default function BookTracker() {
     }
   }
 
+  // Auto-generate recommendations when Discover tab is opened
+  useEffect(() => {
+    if (activeTab === 'recommendations' && recs === null && !recsLoading && !recsError && books.length > 0) {
+      generateRecommendations();
+    }
+  }, [activeTab]);
+
   // ─── Recommendations ───────────────────────────────────────
+
+  async function fetchCoverForRec(rec, index) {
+    try {
+      const q = encodeURIComponent(`intitle:${rec.title} inauthor:${rec.author}`);
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1`);
+      const data = await res.json();
+      const thumb = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+      if (thumb) {
+        setRecCovers(prev => ({ ...prev, [index]: thumb.replace('http://', 'https://') }));
+      }
+    } catch { /* silently skip */ }
+  }
 
   async function generateRecommendations() {
     if (books.length === 0) return;
     setRecsLoading(true);
     setRecsError(false);
     setRecs(null);
+    setRecCovers({});
 
     try {
       const liked = books.filter(b => b.rating >= 3).map(b => ({ title: b.title, author: b.author || 'Unknown', genre: b.genre, rating: b.rating }));
@@ -771,6 +793,7 @@ export default function BookTracker() {
         const parsed = JSON.parse(json);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setRecs(parsed);
+          parsed.forEach((rec, i) => fetchCoverForRec(rec, i));
         } else {
           throw new Error();
         }
@@ -1019,20 +1042,20 @@ export default function BookTracker() {
         {/* ── Discover tab ── */}
         {isOwner && (
           <div id="recommendations" className={`tab-content${activeTab === 'recommendations' ? ' active' : ''}`}>
-            <h2 className="section-title" style={{ marginBottom: 16 }}>What Should I Read Next?</h2>
-            <p className="recs-intro">Based on your reading history and tastes, Claude will suggest titles you're likely to love:</p>
-            <button onClick={generateRecommendations} style={{ marginBottom: 28 }}>Generate Recommendations</button>
+            <h2 className="section-title" style={{ marginBottom: 16 }}>Discover the Next Read</h2>
+
             <div id="recommendationsList" className="recommendations">
               {recsLoading && (
-                <div className="loading-state">
-                  <div className="loading-primary">Consulting the stacks...</div>
-                  <div className="loading-secondary">Analyzing your reading history</div>
+                <div className="loading-fullpage">
+                  <div className="page-spinner" aria-label="Loading" />
+                  <p className="loading-label">Consulting the stacks…</p>
                 </div>
               )}
               {recsError && (
                 <div className="error-state">
                   <div className="error-primary">⚠ Couldn't generate recommendations</div>
                   <div className="error-secondary">Please try again in a moment</div>
+                  <button className="add-book-cta" style={{ marginTop: 12 }} onClick={generateRecommendations}>Try again</button>
                 </div>
               )}
               {recs === null && !recsLoading && books.length === 0 && (
@@ -1042,31 +1065,45 @@ export default function BookTracker() {
                   <button className="empty-state-cta" onClick={() => setShowAddDrawer(true)}>Log your first book</button>
                 </div>
               )}
-              {recs && recs.map((rec, i) => (
-                <div key={i} className="recommendation-card">
-                  <div className="rec-content">
-                    <div className="rec-title">{rec.title}</div>
-                    <div className="rec-meta">
-                      <span>{rec.author}</span>
-                      <span className="genre-badge">{rec.genre}</span>
+              {recs && (
+                <div className="books-list" style={{ gridTemplateColumns: `repeat(${booksPerRow}, 1fr)` }}>
+                  {recs.map((rec, i) => (
+                    <div key={i} style={{ display: 'contents' }}>
+                      <div
+                        className="book-card"
+                        data-book-id={`rec-${i}`}
+                        title={`${rec.title}${rec.author ? ' — ' + rec.author : ''}`}
+                        onClick={() => setDetailRec({ ...rec, cover: recCovers[i] || null })}
+                      >
+                        <div className="books__cover">
+                          <div className="books__back-cover" />
+                          <div className="books__inside">
+                            <div className="books__page" />
+                            <div className="books__page" />
+                            <div className="books__page" />
+                          </div>
+                          <div className="books__image">
+                            {recCovers[i]
+                              ? <img src={recCovers[i]} alt={rec.title} loading="lazy" />
+                              : <div className="book-placeholder">📚</div>}
+                            <div className="books__effect" />
+                            <div className="books__light" />
+                          </div>
+                        </div>
+                        <div className="book-contact-shadow" />
+                      </div>
+                      {((i + 1) % booksPerRow === 0 || i === recs.length - 1) && (
+                        <div className="shelf-line" aria-hidden="true" />
+                      )}
                     </div>
-                    <div className="rec-reason">{rec.reason}</div>
-                    <a
-                      className="goodreads-link"
-                      href={`https://www.goodreads.com/search?q=${encodeURIComponent(rec.title + ' ' + rec.author)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Find on Goodreads →
-                    </a>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
 
-        {!isLoading && (
+        {!isLoading && (activeTab === 'library' || !isOwner) && (
           <p className="design-credit">
             Book animation design by{' '}
             <a href="https://codepen.io/filipz" target="_blank" rel="noopener noreferrer">Filip Zrnzevic</a>
@@ -1349,6 +1386,51 @@ export default function BookTracker() {
       )}
 
       {/* ── Undo Toast ── */}
+      {/* ── Rec Detail Drawer ── */}
+      {detailRec && (
+        <div
+          className="book-detail-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="recDetailTitle"
+          onClick={e => { if (e.target === e.currentTarget) setDetailRec(null); }}
+        >
+          <div className="book-detail-modal">
+            <div className="bd-drawer-header">
+              <span className="bd-drawer-title" id="recDetailTitle">Book Details</span>
+              <button className="book-detail-close" onClick={() => setDetailRec(null)} aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="bd-drawer-body" style={{ gap: 16 }}>
+              <div className="bd-centered-layout">
+                <div className="bd-cover-lg">
+                  {detailRec.cover
+                    ? <img src={detailRec.cover} alt={detailRec.title} />
+                    : '📚'}
+                </div>
+                <div className="bd-title">{detailRec.title}</div>
+                {detailRec.author && <div className="bd-author">by {detailRec.author}</div>}
+                {detailRec.genre && <span className="genre-badge">{detailRec.genre}</span>}
+              </div>
+              {detailRec.reason && (
+                <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{detailRec.reason}</p>
+              )}
+              <a
+                className="goodreads-link"
+                href={`https://www.goodreads.com/search?q=${encodeURIComponent(detailRec.title + ' ' + detailRec.author)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Find on Goodreads →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={`undo-toast${undoBook ? ' active' : ''}`} role="status" aria-live="polite">
         <span className="undo-toast-message">
           &ldquo;{undoBook?.title?.length > 30 ? undoBook.title.slice(0, 28) + '…' : undoBook?.title}&rdquo; deleted

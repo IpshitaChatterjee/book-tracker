@@ -965,6 +965,9 @@ button:active { transform: scale(0.96); }
   border-radius: 8px;
   box-shadow: var(--shadow-xs);
   transition: border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
 }
 
 .recommendation-card:hover {
@@ -972,7 +975,16 @@ button:active { transform: scale(0.96); }
   box-shadow: var(--shadow-sm);
 }
 
-.rec-content { width: 100%; }
+.rec-cover {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.rec-content { flex: 1; min-width: 0; }
 
 .rec-title {
   font-family: var(--font-heading), Georgia, serif;
