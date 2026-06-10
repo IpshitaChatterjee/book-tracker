@@ -27,12 +27,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${crimson.variable}`}>
+    <html lang="en" className={`${jakarta.variable} ${crimson.variable}`} suppressHydrationWarning>
       <head>
         {/* Prevent flash of wrong theme before React hydrates */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('rt_theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t===null&&d))document.documentElement.classList.add('dark');})();` }} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Analytics />
       </body>

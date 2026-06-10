@@ -134,6 +134,7 @@ export default function BookTracker() {
   // Core
   const [books, setBooks] = useState([]);
   const [isOwner, setIsOwner] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Tabs
   const [activeTab, setActiveTab] = useState('library');
@@ -372,6 +373,7 @@ export default function BookTracker() {
 
   async function loadBooks() {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('books')
         .select('*')
@@ -391,6 +393,8 @@ export default function BookTracker() {
       })));
     } catch (err) {
       console.error('Error loading books:', err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -780,7 +784,6 @@ export default function BookTracker() {
             </div>
             <div>
               <div className="sidebar-logo-text">Reading Trove</div>
-              <div className="sidebar-logo-sub">Personal Library</div>
             </div>
           </div>
         </div>
@@ -798,9 +801,20 @@ export default function BookTracker() {
                 <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
               </svg>
             </span>
-            <span className="sidebar-item-text">Library</span>
-            {books.length > 0 && <span className="sidebar-badge">{books.length}</span>}
+            <span className="sidebar-item-text">Completed</span>
           </button>
+
+          <a
+            href="/tbr"
+            className="sidebar-item"
+          >
+            <span className="sidebar-item-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+            </span>
+            <span className="sidebar-item-text">To Be Read</span>
+          </a>
 
           {isOwner && (
             <button
@@ -855,7 +869,7 @@ export default function BookTracker() {
         <div id="library" className={`tab-content${activeTab === 'library' || !isOwner ? ' active' : ''}`}>
           <div className="section-header">
             <h2 className="section-title">
-              {selectedYear === 'all' ? 'All Books' : `${selectedYear}`}
+              {selectedYear === 'all' ? 'Completed Reading' : `${selectedYear}`}
             </h2>
             <div className="section-header-actions">
               <div className="form-group" style={{ margin: 0 }}>
@@ -866,11 +880,11 @@ export default function BookTracker() {
                 </select>
               </div>
               {isOwner && (
-                <button className="add-book-cta" onClick={() => setShowAddDrawer(true)} aria-label="Log a book">
+                <button className="add-book-cta" onClick={() => setShowAddDrawer(true)} aria-label="Add a book">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                   </svg>
-                  Log Book
+                  Add Book
                 </button>
               )}
             </div>
@@ -893,7 +907,14 @@ export default function BookTracker() {
           </div>
 
           {/* Book grid */}
-          <div id="booksList" className="books-list" style={{ gridTemplateColumns: `repeat(${booksPerRow}, 1fr)` }}>
+          {isLoading ? (
+            <div className="loading-fullpage">
+              <div className="page-spinner" aria-label="Loading" />
+              <p className="loading-label">Turning pages…</p>
+            </div>
+          ) : null}
+
+          <div id="booksList" className="books-list" style={{ gridTemplateColumns: `repeat(${booksPerRow}, 1fr)`, display: isLoading ? 'none' : undefined }}>
             {sortedBooks.length === 0 ? (
               <div className="empty-state">
                 {selectedYear === 'all' ? (
@@ -1025,6 +1046,13 @@ export default function BookTracker() {
               ))}
             </div>
           </div>
+        )}
+
+        {!isLoading && (
+          <p className="design-credit">
+            Book animation design by{' '}
+            <a href="https://codepen.io/filipz" target="_blank" rel="noopener noreferrer">Filip Zrnzevic</a>
+          </p>
         )}
 
       </main>
@@ -1164,7 +1192,7 @@ export default function BookTracker() {
 
             {/* Sticky header */}
             <div className="bd-drawer-header">
-              <span className="bd-drawer-title" id="addDrawerTitle">Log a Book</span>
+              <span className="bd-drawer-title" id="addDrawerTitle">Add Book</span>
               <button className="book-detail-close" onClick={() => setShowAddDrawer(false)} aria-label="Close">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -1180,11 +1208,11 @@ export default function BookTracker() {
                 <div className="bd-cover-wrap">
                   <div className="bd-cover">
                     {addCover ? <img src={addCover} alt="Cover preview" /> : '📚'}
+                    <label className="bd-cover-edit-btn" htmlFor="addCoverInput" title="Upload cover">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                      Upload
+                    </label>
                   </div>
-                  <label className="bd-cover-edit-btn" htmlFor="addCoverInput" title="Upload cover">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-                    Upload
-                  </label>
                   <input type="file" id="addCoverInput" accept="image/png,image/jpeg,image/jpg" style={{ display: 'none' }}
                     onChange={e => { handleCoverFile(e.target.files[0]); e.target.value = ''; }} />
                 </div>
@@ -1210,7 +1238,7 @@ export default function BookTracker() {
                     onChange={e => setManualAuthor(e.target.value)}
                   />
                   <select
-                    className="bd-edit-select"
+                    className={`bd-edit-select${!manualGenre ? ' placeholder' : ''}`}
                     aria-label="Genre"
                     value={manualGenre}
                     onChange={e => {
@@ -1254,21 +1282,17 @@ export default function BookTracker() {
 
               {/* Date */}
               <div className="bd-edit-date-wrap">
-                <label className="bd-edit-label" htmlFor="addDateFinished">Date Finished</label>
+                <label className="bd-edit-label" htmlFor="addDateFinished">Date finished</label>
                 <input type="date" className="bd-edit-input" id="addDateFinished" style={{ width: 'auto' }} value={addDate} onChange={e => setAddDate(e.target.value)} />
               </div>
 
-              {/* Paste hint */}
-              <div className="cover-hint" style={{ fontSize: '0.8em' }}>
-                Press <kbd>Ctrl+V</kbd> / <kbd>⌘V</kbd> to paste a cover image from clipboard
-              </div>
 
             </div>
 
             {/* Sticky footer */}
             <div className="bd-drawer-footer">
               <button className="bd-btn bd-btn-cancel" onClick={() => setShowAddDrawer(false)}>Cancel</button>
-              <button className="bd-btn bd-btn-save" onClick={handleAddBook}>Add to Library</button>
+              <button className="bd-btn bd-btn-save" onClick={handleAddBook}>Add Book</button>
             </div>
 
           </div>
@@ -1315,11 +1339,6 @@ export default function BookTracker() {
         </span>
         <button className="undo-toast-btn" onClick={handleUndo}>Undo</button>
       </div>
-
-      <p className="design-credit">
-        Book animation design by{' '}
-        <a href="https://codepen.io/filipz" target="_blank" rel="noopener noreferrer">Filip Zrnzevic</a>
-      </p>
 
     </div>
   );
