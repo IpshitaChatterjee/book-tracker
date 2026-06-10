@@ -794,7 +794,7 @@ export default function BookTracker() {
           max_tokens: 2000,
           messages: [{
             role: 'user',
-            content: `Based on these reading preferences, recommend 5 books I should read next.\n\nBooks I enjoyed (rated 3-5 stars):\n${JSON.stringify(liked, null, 2)}\n\nBooks I didn't enjoy (rated 1-2 stars):\n${JSON.stringify(disliked, null, 2)}\n\nProvide exactly 5 recommendations in this JSON format (no markdown, raw JSON array only):\n[\n  {\n    "title": "Book Title",\n    "author": "Author Name",\n    "genre": "Genre",\n    "reason": "Why I would enjoy this based on my reading history"\n  }\n]`,
+            content: `Based on these reading preferences, recommend 6 books I should read next.\n\nBooks I enjoyed (rated 3-5 stars):\n${JSON.stringify(liked, null, 2)}\n\nBooks I didn't enjoy (rated 1-2 stars):\n${JSON.stringify(disliked, null, 2)}\n\nProvide exactly 6 recommendations in this JSON format (no markdown, raw JSON array only):\n[\n  {\n    "title": "Book Title",\n    "author": "Author Name",\n    "genre": "Genre",\n    "reason": "Why I would enjoy this based on my reading history"\n  }\n]`,
           }],
         }),
       });
