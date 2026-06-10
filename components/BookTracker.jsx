@@ -752,18 +752,12 @@ export default function BookTracker() {
 
   async function fetchCoverForRec(rec, index) {
     try {
-      const queries = [
-        `${rec.title} ${rec.author}`,
-        rec.title,
-      ];
-      for (const q of queries) {
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1`);
-        const data = await res.json();
-        const thumb = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-        if (thumb) {
-          setRecCovers(prev => ({ ...prev, [index]: thumb.replace('http://', 'https://') }));
-          return;
-        }
+      const params = new URLSearchParams({ title: rec.title, author: rec.author, limit: 1, fields: 'cover_i' });
+      const res = await fetch(`https://openlibrary.org/search.json?${params}`);
+      const data = await res.json();
+      const coverId = data.docs?.[0]?.cover_i;
+      if (coverId) {
+        setRecCovers(prev => ({ ...prev, [index]: `https://covers.openlibrary.org/b/id/${coverId}-M.jpg` }));
       }
     } catch { /* silently skip */ }
   }
@@ -799,7 +793,7 @@ export default function BookTracker() {
         const parsed = JSON.parse(json);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setRecs(parsed);
-          parsed.forEach((rec, i) => setTimeout(() => fetchCoverForRec(rec, i), i * 400));
+          parsed.forEach((rec, i) => fetchCoverForRec(rec, i));
         } else {
           throw new Error();
         }
