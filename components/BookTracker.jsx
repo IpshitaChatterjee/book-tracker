@@ -1056,7 +1056,19 @@ export default function BookTracker() {
         {/* ── Discover tab ── */}
         {isOwner && (
           <div id="recommendations" className={`tab-content${activeTab === 'recommendations' ? ' active' : ''}`}>
-            <h2 className="section-title" style={{ marginBottom: 16 }}>Discover the Next Read</h2>
+            <div className="section-header">
+              <h2 className="section-title">Discover the Next Read</h2>
+              {!recsLoading && (
+                <button className="add-book-cta" onClick={() => { setRecs(null); setRecCovers({}); generateRecommendations(); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                  </svg>
+                  Refresh
+                </button>
+              )}
+            </div>
+            {/* Spacer matching stats section height so shelf aligns with other pages */}
+            <div style={{ height: 99 }} aria-hidden="true" />
 
             <div id="recommendationsList" className="recommendations">
               {recsLoading && (
