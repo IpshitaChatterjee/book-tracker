@@ -1841,26 +1841,27 @@ button:active { transform: scale(0.96); }
   flex-shrink: 0;
   background: linear-gradient(
     to right,
-    rgba(0,0,0,0.22) 0%,
-    rgba(0,0,0,0.10) 30%,
-    rgba(180,170,155,0.55) 50%,
-    rgba(0,0,0,0.10) 70%,
-    rgba(0,0,0,0.22) 100%
+    #A89880 0%,
+    #C8B89A 30%,
+    #D4C4A8 50%,
+    #C8B89A 70%,
+    #A89880 100%
   );
-  border-left:  1px solid rgba(0,0,0,0.18);
-  border-right: 1px solid rgba(0,0,0,0.18);
+  border-left:  1px solid #8B7A64;
+  border-right: 1px solid #8B7A64;
 }
 
 html.dark .book-spine-divider {
   background: linear-gradient(
     to right,
-    rgba(0,0,0,0.55) 0%,
-    rgba(0,0,0,0.28) 30%,
-    rgba(255,255,255,0.08) 50%,
-    rgba(0,0,0,0.28) 70%,
-    rgba(0,0,0,0.55) 100%
+    #050D07 0%,
+    #0C1810 30%,
+    #152018 50%,
+    #0C1810 70%,
+    #050D07 100%
   );
-  border-color: rgba(0,0,0,0.40);
+  border-left:  1px solid #030A05;
+  border-right: 1px solid #030A05;
 }
 
 /* ── Left page content ── */
