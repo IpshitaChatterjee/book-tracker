@@ -1837,31 +1837,14 @@ button:active { transform: scale(0.96); }
 
 /* ── Spine ── */
 .book-spine-divider {
-  width: 20px;
+  width: 2px;
   flex-shrink: 0;
-  background: linear-gradient(
-    to right,
-    #A89880 0%,
-    #C8B89A 30%,
-    #D4C4A8 50%,
-    #C8B89A 70%,
-    #A89880 100%
-  );
-  border-left:  1px solid #8B7A64;
-  border-right: 1px solid #8B7A64;
+  background: #B0A08A;
+  border: none;
 }
 
 html.dark .book-spine-divider {
-  background: linear-gradient(
-    to right,
-    #050D07 0%,
-    #0C1810 30%,
-    #152018 50%,
-    #0C1810 70%,
-    #050D07 100%
-  );
-  border-left:  1px solid #030A05;
-  border-right: 1px solid #030A05;
+  background: #0A1A0C;
 }
 
 /* ── Left page content ── */
