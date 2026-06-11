@@ -204,7 +204,7 @@ export default function BookTracker() {
   const [notesBookId, setNotesBookId] = useState(null);
   const [noteInput, setNoteInput] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
-  const notesTriggerRect = React.useRef(null);
+  const notesTriggerRect = useRef(null);
 
   // Lookup debounce
   const lookupTimerRef = useRef(null);
