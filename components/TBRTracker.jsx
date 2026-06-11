@@ -5,6 +5,16 @@ import { gsap } from 'gsap';
 import AddBookDrawer from './AddBookDrawer';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 
+const CoverPlaceholder = () => (
+  <div className="cover-placeholder">
+    <svg className="cover-placeholder-icon" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="1" y="1" width="17" height="26" rx="2.5" stroke="currentColor" strokeWidth="2"/>
+      <rect x="3.5" y="3.5" width="12" height="18" rx="1.5" stroke="currentColor" strokeWidth="2"/>
+      <rect x="1" y="23.5" width="17" height="3" rx="1.5" fill="currentColor"/>
+    </svg>
+  </div>
+);
+
 const MoonSVG = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -391,7 +401,7 @@ export default function TBRTracker() {
                       <div className="books__image">
                         {book.coverImage
                           ? <img src={book.coverImage} alt={book.title} loading="lazy" />
-                          : <div className="book-placeholder">📚</div>}
+                          : <div className="book-placeholder"><CoverPlaceholder /></div>}
                         <div className="books__effect" />
                         <div className="books__light" />
                       </div>
@@ -467,7 +477,7 @@ export default function TBRTracker() {
                 <div className="bd-cover-lg">
                   {detailBook.coverImage
                     ? <img src={detailBook.coverImage} alt={detailBook.title} />
-                    : '📚'}
+                    : <CoverPlaceholder />}
                 </div>
                 <div className="bd-title">{detailBook.title}</div>
                 {detailBook.author && <div className="bd-author">by {detailBook.author}</div>}
@@ -510,7 +520,7 @@ export default function TBRTracker() {
                 <div className="bd-cover-lg">
                   {completingBook.coverImage
                     ? <img src={completingBook.coverImage} alt={completingBook.title} />
-                    : '📚'}
+                    : <CoverPlaceholder />}
                 </div>
                 <div className="bd-title">{completingBook.title}</div>
                 {completingBook.author && <div className="bd-author">by {completingBook.author}</div>}
