@@ -139,6 +139,7 @@ export default function BookTracker() {
   // Tabs
   const [activeTab, setActiveTab] = useState('library');
   const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedGenre, setSelectedGenre] = useState('all');
 
   // Add Book drawer
   const [showAddDrawer, setShowAddDrawer] = useState(false);
@@ -198,16 +199,29 @@ export default function BookTracker() {
   const [detailRec, setDetailRec] = useState(null);
   const [openRecMenuId, setOpenRecMenuId] = useState(null);
 
+  // Notes modal
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [notesBookId, setNotesBookId] = useState(null);
+  const [noteInput, setNoteInput] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+
   // Lookup debounce
   const lookupTimerRef = useRef(null);
+  const notesBookRef  = useRef(null);
+  const leftPageRef   = useRef(null);
+  const rightPageRef  = useRef(null);
 
   // ─── Derived ───────────────────────────────────────────────
 
   const detailBook = books.find(b => b.id === detailId) ?? null;
 
-  const filteredBooks = selectedYear === 'all'
+  const yearFilteredBooks = selectedYear === 'all'
     ? books
     : books.filter(b => new Date(b.dateFinished).getFullYear() === parseInt(selectedYear));
+
+  const filteredBooks = selectedGenre === 'all'
+    ? yearFilteredBooks
+    : yearFilteredBooks.filter(b => b.genre === selectedGenre);
 
   const sortedBooks = [...filteredBooks].sort((a, b) =>
     new Date(b.dateFinished) - new Date(a.dateFinished)
@@ -218,6 +232,10 @@ export default function BookTracker() {
   )].sort((a, b) => b - a);
 
   const allGenres = getAllGenres(books);
+
+  const availableGenres = [...new Set(
+    yearFilteredBooks.map(b => b.genre).filter(Boolean)
+  )].sort();
 
   const totalBooks = filteredBooks.length;
   const avgRating = totalBooks > 0
@@ -268,14 +286,15 @@ export default function BookTracker() {
 
   // Modal scroll lock
   useEffect(() => {
-    document.body.style.overflow = (detailId || showAddDrawer) ? 'hidden' : '';
+    document.body.style.overflow = (detailId || showAddDrawer || showNotesModal) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [detailId, showAddDrawer]);
+  }, [detailId, showAddDrawer, showNotesModal]);
 
   // ESC key
   useEffect(() => {
     function onKey(e) {
       if (e.key !== 'Escape') return;
+      if (showNotesModal) { setShowNotesModal(false); return; }
       if (detailId) {
         if (detailMode === 'edit') exitEditMode();
         else closeDetail();
@@ -285,7 +304,7 @@ export default function BookTracker() {
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [detailId, detailMode, showLogin, showAddDrawer]);
+  }, [detailId, detailMode, showLogin, showAddDrawer, showNotesModal]);
 
   // Close open card menu on outside click
   useEffect(() => {
@@ -394,6 +413,7 @@ export default function BookTracker() {
         coverImage: b.cover_image,
         synopsis: b.synopsis || '',
         apiRating: b.api_rating || '',
+        notes: b.notes || [],
       })));
     } catch (err) {
       console.error('Error loading books:', err);
@@ -743,6 +763,60 @@ export default function BookTracker() {
     }
   }
 
+  // ─── Notes modal ──────────────────────────────────────────
+
+  function handleViewNotes() {
+    setNotesBookId(detailId);
+    setShowNotesModal(true);
+    closeDetail();
+  }
+
+  async function handleAddNote() {
+    if (!noteInput.trim() || noteSaving) return;
+    setNoteSaving(true);
+    try {
+      const book = books.find(b => b.id === notesBookId);
+      const currentNotes = book?.notes || [];
+      const newNote = { id: crypto.randomUUID(), text: noteInput.trim(), createdAt: new Date().toISOString() };
+      const updatedNotes = [...currentNotes, newNote];
+      const { error } = await supabase.from('books').update({ notes: updatedNotes }).eq('id', notesBookId).eq('user_id', OWNER_UUID);
+      if (error) throw error;
+      setBooks(prev => prev.map(b => b.id === notesBookId ? { ...b, notes: updatedNotes } : b));
+      setNoteInput('');
+    } catch (err) {
+      console.error('Failed to save note:', err?.message || err?.details || err?.code || err);
+    } finally {
+      setNoteSaving(false);
+    }
+  }
+
+  async function handleDeleteNote(bookId, noteId) {
+    const book = books.find(b => b.id === bookId);
+    const updatedNotes = (book?.notes || []).filter(n => n.id !== noteId);
+    try {
+      const { error } = await supabase.from('books').update({ notes: updatedNotes }).eq('id', bookId).eq('user_id', OWNER_UUID);
+      if (error) throw error;
+      setBooks(prev => prev.map(b => b.id === bookId ? { ...b, notes: updatedNotes } : b));
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+    }
+  }
+
+  // GSAP open-book entrance animation
+  useEffect(() => {
+    if (!showNotesModal || !notesBookRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.from(notesBookRef.current, { scale: 0.92, opacity: 0, duration: 0.35, ease: 'power3.out' });
+      gsap.from(leftPageRef.current,  { rotateY: -22, duration: 0.55, ease: 'power3.out', delay: 0.08 });
+      gsap.from(rightPageRef.current, { rotateY:  22, duration: 0.55, ease: 'power3.out', delay: 0.08 });
+      gsap.from('.notes-left-content',  { opacity: 0, y: 10, duration: 0.35, delay: 0.30 });
+      gsap.from('.notes-page-title',    { opacity: 0, y: 8,  duration: 0.30, delay: 0.35 });
+      gsap.from('.notes-list',          { opacity: 0, y: 8,  duration: 0.30, delay: 0.40 });
+      gsap.from('.notes-add-form',      { opacity: 0, y: 8,  duration: 0.30, delay: 0.45 });
+    }, notesBookRef);
+    return () => ctx.revert();
+  }, [showNotesModal, notesBookId]);
+
   // Auto-generate recommendations when Discover tab is opened
   useEffect(() => {
     if (activeTab === 'recommendations' && recs === null && !recsLoading && !recsError && books.length > 0) {
@@ -925,9 +999,16 @@ export default function BookTracker() {
             <div className="section-header-actions">
               <div className="form-group" style={{ margin: 0 }}>
                 <label htmlFor="yearFilter" className="sr-only">Filter by year</label>
-                <select id="yearFilter" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                <select id="yearFilter" value={selectedYear} onChange={e => { setSelectedYear(e.target.value); setSelectedGenre('all'); }}>
                   <option value="all">All Years</option>
                   {allYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label htmlFor="genreFilter" className="sr-only">Filter by genre</label>
+                <select id="genreFilter" value={selectedGenre} onChange={e => setSelectedGenre(e.target.value)}>
+                  <option value="all">All Genres</option>
+                  {availableGenres.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               {isOwner && (
@@ -968,13 +1049,18 @@ export default function BookTracker() {
           <div id="booksList" className="books-list" style={{ gridTemplateColumns: `repeat(${booksPerRow}, 1fr)`, display: isLoading ? 'none' : undefined }}>
             {sortedBooks.length === 0 ? (
               <div className="empty-state">
-                {selectedYear === 'all' ? (
+                {selectedYear === 'all' && selectedGenre === 'all' ? (
                   <>
                     <h3>Your library is empty</h3>
                     <p>Start building your reading ledger — every great collection begins with a single book.</p>
                     {isOwner && (
                       <button className="empty-state-cta" onClick={() => setShowAddDrawer(true)}>Log your first book</button>
                     )}
+                  </>
+                ) : selectedGenre !== 'all' ? (
+                  <>
+                    <h3>No {selectedGenre} books{selectedYear !== 'all' ? ` in ${selectedYear}` : ''}</h3>
+                    <p>No books in this genre match the current filters.</p>
                   </>
                 ) : (
                   <>
@@ -1260,14 +1346,15 @@ export default function BookTracker() {
 
             {/* Sticky footer — CTAs always visible at bottom */}
             <div className="bd-drawer-footer">
-              {detailMode === 'view' && isOwner && (
+              {detailMode === 'view' && (
                 <>
-                  <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
-                  <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>
+                  <button className="bd-btn bd-btn-notes" onClick={handleViewNotes}>View Notes</button>
+                  {isOwner && <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>}
                 </>
               )}
               {detailMode === 'edit' && (
                 <>
+                  <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
                   <button className="bd-btn bd-btn-cancel" onClick={exitEditMode}>Cancel</button>
                   <button className="bd-btn bd-btn-save" onClick={saveDetailChanges}>Save Changes</button>
                 </>
@@ -1482,6 +1569,116 @@ export default function BookTracker() {
           </div>
         </div>
       )}
+
+      {/* ── Notes Open Book Modal ── */}
+      {showNotesModal && notesBookId && (() => {
+        const book = books.find(b => b.id === notesBookId);
+        if (!book) return null;
+        const notes = book.notes || [];
+        return (
+          <div
+            className="notes-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Notes for ${book.title}`}
+            onClick={e => { if (e.target === e.currentTarget) setShowNotesModal(false); }}
+          >
+            <div className="notes-book-container" ref={notesBookRef}>
+
+              {/* Close */}
+              <button className="notes-close-btn" onClick={() => setShowNotesModal(false)} aria-label="Close notes">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+
+              {/* The open book */}
+              <div className="open-book">
+
+                {/* Left page — book info */}
+                <div className="book-page book-page--left" ref={leftPageRef}>
+                  <div className="page-inner">
+                    <div className="notes-left-content">
+                      {book.coverImage
+                        ? <img src={book.coverImage} alt={book.title} className="notes-cover" />
+                        : <div className="notes-cover-placeholder">📚</div>}
+                      <h2 className="notes-title">{book.title}</h2>
+                      {book.author && <p className="notes-author">by {book.author}</p>}
+                      {book.rating > 0 && (
+                        <div className="notes-rating" role="img" aria-label={`${book.rating} stars`}>
+                          <Stars rating={book.rating} />
+                        </div>
+                      )}
+                      {book.dateFinished && (
+                        <p className="notes-date">Finished {formatDateDisplay(book.dateFinished)}</p>
+                      )}
+                      {book.genre && <span className="genre-badge" style={{ marginTop: 4 }}>{book.genre}</span>}
+                    </div>
+                    <span className="page-number page-number--right">i</span>
+                  </div>
+                </div>
+
+                {/* Spine */}
+                <div className="book-spine-divider" aria-hidden="true" />
+
+                {/* Right page — notes */}
+                <div className="book-page book-page--right" ref={rightPageRef}>
+                  <div className="page-inner">
+                    <h3 className="notes-page-title">My Highlights</h3>
+
+                    <div className="notes-list">
+                      {notes.length === 0 ? (
+                        <p className="notes-empty">No highlights yet.{isOwner ? ' Add your first one below.' : ''}</p>
+                      ) : (
+                        notes.map(note => (
+                          <div className="note-item" key={note.id}>
+                            <p className="note-text">{note.text}</p>
+                            {isOwner && (
+                              <button
+                                className="note-delete-btn"
+                                onClick={() => handleDeleteNote(notesBookId, note.id)}
+                                aria-label="Delete note"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {isOwner && (
+                      <div className="notes-add-form">
+                        <textarea
+                          className="notes-input"
+                          placeholder="Add a highlight or note…"
+                          value={noteInput}
+                          onChange={e => setNoteInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && noteInput.trim()) { e.preventDefault(); handleAddNote(); } }}
+                          rows={3}
+                          aria-label="New note"
+                        />
+                        <button
+                          className="notes-add-btn"
+                          onClick={handleAddNote}
+                          disabled={!noteInput.trim() || noteSaving}
+                        >
+                          {noteSaving ? 'Saving…' : 'Add highlight'}
+                        </button>
+                      </div>
+                    )}
+
+                    <span className="page-number page-number--left">ii</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className={`undo-toast${undoBook ? ' active' : ''}`} role="status" aria-live="polite">
         <span className="undo-toast-message">
