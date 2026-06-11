@@ -1780,7 +1780,7 @@ button:active { transform: scale(0.96); }
 .open-book {
   display: flex;
   width: 100%;
-  min-height: 620px;
+  min-height: 800px;
   border-radius: 3px;
   overflow: hidden;
   box-shadow:
@@ -1871,7 +1871,7 @@ html.dark .book-spine-divider {
 .notes-cover {
   width: auto;
   height: auto;
-  max-height: 480px;
+  max-height: 720px;
   max-width: 85%;
   object-fit: contain;
   border-radius: 2px;
