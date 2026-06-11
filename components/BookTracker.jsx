@@ -3,31 +3,13 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
-
-// ─── SVG helpers ───────────────────────────────────────────────
-
-const StarFillSVG = () => (
-  <svg className="star-icon star-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-    viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5"
-    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
-const StarEmptySVG = () => (
-  <svg className="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
-    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
-
-const CoverPlaceholder = () => (
-  <div className="cover-placeholder">
-    <img className="cover-placeholder-light" src="/cover-placeholder-light.png" alt="" aria-hidden="true" />
-    <img className="cover-placeholder-dark" src="/cover-placeholder-dark.png" alt="" aria-hidden="true" />
-  </div>
-);
+import { Button } from '@/components/ui/Button';
+import { StatCard } from '@/components/ui/StatCard';
+import { GenreBadge } from '@/components/ui/GenreBadge';
+import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
+import { StarRating } from '@/components/ui/StarRating';
+import { StarRatingInput } from '@/components/ui/StarRatingInput';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 const MoonSVG = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
@@ -102,37 +84,6 @@ function getAllGenres(books) {
     books.map(b => b.genre).filter(g => g && g !== 'Other' && !defaults.includes(g))
   )].sort();
   return [...defaults, ...custom];
-}
-
-// ─── Star display (read-only) ────────────────────────────────
-
-function Stars({ rating }) {
-  return (
-    <>
-      {[1, 2, 3, 4, 5].map(i => i <= rating ? <StarFillSVG key={i} /> : <StarEmptySVG key={i} />)}
-    </>
-  );
-}
-
-// ─── Interactive stars ────────────────────────────────────────
-
-function RatingStars({ rating, hover, onRate, onHover, onLeave }) {
-  return (
-    <div className="rating-input" onMouseLeave={onLeave}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <button
-          key={i}
-          type="button"
-          className={`bd-star-interactive${(hover || rating) >= i ? ' active' : ''}`}
-          aria-label={`${i} star${i > 1 ? 's' : ''}`}
-          onClick={() => onRate(i)}
-          onMouseEnter={() => onHover(i)}
-        >
-          {(hover || rating) >= i ? <StarFillSVG /> : <StarEmptySVG />}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 // ─── Main component ───────────────────────────────────────────
@@ -969,18 +920,9 @@ export default function BookTracker() {
 
           {/* Stats */}
           <div className="stats">
-            <div className="stat-card">
-              <div className="stat-number">{totalBooks}</div>
-              <div className="stat-label">Books Read</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">{avgRating}</div>
-              <div className="stat-label">Avg Rating</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-genre">{totalBooks > 0 ? favoriteGenre : '—'}</div>
-              <div className="stat-label">Top Genre</div>
-            </div>
+            <StatCard value={totalBooks} label="Books Read" />
+            <StatCard value={avgRating} label="Avg Rating" />
+            <StatCard value={totalBooks > 0 ? favoriteGenre : '—'} label="Top Genre" isGenre />
           </div>
 
           {/* Book grid */}
@@ -1225,10 +1167,8 @@ export default function BookTracker() {
                   </div>
                   <div className="bd-title" id="bdTitle">{detailBook?.title}</div>
                   <div className="bd-author">{detailBook?.author ? 'by ' + detailBook.author : ''}</div>
-                  {detailBook?.genre && <span className="genre-badge">{detailBook.genre}</span>}
-                  <div className="bd-stars" role="img" aria-label={`Rating: ${detailBook?.rating} out of 5`}>
-                    <Stars rating={detailBook?.rating ?? 0} />
-                  </div>
+                  {detailBook?.genre && <GenreBadge genre={detailBook.genre} />}
+                  <StarRating rating={detailBook?.rating ?? 0} />
                 </div>
               ) : (
                 <div className="bd-cover-row editing">
@@ -1252,7 +1192,7 @@ export default function BookTracker() {
                       {allGenres.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>
                     <div className="bd-stars">
-                      <RatingStars
+                      <StarRatingInput
                         rating={detailEditRating}
                         hover={detailEditRatingHover}
                         onRate={setDetailEditRating}
@@ -1293,15 +1233,15 @@ export default function BookTracker() {
             <div className="bd-drawer-footer">
               {detailMode === 'view' && isOwner && (
                 <>
-                  <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
-                  <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>
+                  <Button variant="delete" onClick={handleDeleteFromDetail}>Delete</Button>
+                  <Button variant="edit" onClick={() => enterEditMode()}>Edit</Button>
                 </>
               )}
               {detailMode === 'edit' && (
                 <>
-                  <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
-                  <button className="bd-btn bd-btn-cancel" onClick={exitEditMode}>Cancel</button>
-                  <button className="bd-btn bd-btn-save" onClick={saveDetailChanges}>Save Changes</button>
+                  <Button variant="delete" onClick={handleDeleteFromDetail}>Delete</Button>
+                  <Button variant="cancel" onClick={exitEditMode}>Cancel</Button>
+                  <Button variant="save" onClick={saveDetailChanges}>Save Changes</Button>
                 </>
               )}
             </div>
@@ -1383,7 +1323,7 @@ export default function BookTracker() {
                     <option value="Other">Other (create new)</option>
                   </select>
                   <div className="bd-stars">
-                    <RatingStars
+                    <StarRatingInput
                       rating={addRating}
                       hover={addRatingHover}
                       onRate={setAddRating}
@@ -1422,8 +1362,8 @@ export default function BookTracker() {
 
             {/* Sticky footer */}
             <div className="bd-drawer-footer">
-              <button className="bd-btn bd-btn-cancel" onClick={() => setShowAddDrawer(false)}>Cancel</button>
-              <button className="bd-btn bd-btn-save" onClick={handleAddBook}>Add Book</button>
+              <Button variant="cancel" onClick={() => setShowAddDrawer(false)}>Cancel</Button>
+              <Button variant="save" onClick={handleAddBook}>Add Book</Button>
             </div>
 
           </div>
@@ -1491,7 +1431,7 @@ export default function BookTracker() {
                 </div>
                 <div className="bd-title">{detailRec.title}</div>
                 {detailRec.author && <div className="bd-author">by {detailRec.author}</div>}
-                {detailRec.genre && <span className="genre-badge">{detailRec.genre}</span>}
+                {detailRec.genre && <GenreBadge genre={detailRec.genre} />}
               </div>
               {detailRec.reason && (
                 <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{detailRec.reason}</p>
@@ -1507,8 +1447,8 @@ export default function BookTracker() {
             </div>
             {isOwner && (
               <div className="bd-drawer-footer">
-                <button className="bd-btn bd-btn-cancel" onClick={() => setDetailRec(null)}>Close</button>
-                <button className="bd-btn bd-btn-save" onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</button>
+                <Button variant="cancel" onClick={() => setDetailRec(null)}>Close</Button>
+                <Button variant="save" onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</Button>
               </div>
             )}
           </div>

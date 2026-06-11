@@ -4,13 +4,11 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import AddBookDrawer from './AddBookDrawer';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
-
-const CoverPlaceholder = () => (
-  <div className="cover-placeholder">
-    <img className="cover-placeholder-light" src="/cover-placeholder-light.png" alt="" aria-hidden="true" />
-    <img className="cover-placeholder-dark" src="/cover-placeholder-dark.png" alt="" aria-hidden="true" />
-  </div>
-);
+import { Button } from '@/components/ui/Button';
+import { StatCard } from '@/components/ui/StatCard';
+import { GenreBadge } from '@/components/ui/GenreBadge';
+import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
+import { StarRatingInput } from '@/components/ui/StarRatingInput';
 
 const MoonSVG = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
@@ -345,18 +343,9 @@ export default function TBRTracker() {
           {/* Stats */}
           {!isLoading && books.length > 0 && (
             <div className="stats">
-              <div className="stat-card">
-                <div className="stat-number">{books.length}</div>
-                <div className="stat-label">Books TBR</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-number">{addedThisMonth}</div>
-                <div className="stat-label">Added This Month</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-genre">{topGenre}</div>
-                <div className="stat-label">Top Genre</div>
-              </div>
+              <StatCard value={books.length} label="Books TBR" />
+              <StatCard value={addedThisMonth} label="Added This Month" />
+              <StatCard value={topGenre} label="Top Genre" isGenre />
             </div>
           )}
 
@@ -478,7 +467,7 @@ export default function TBRTracker() {
                 </div>
                 <div className="bd-title">{detailBook.title}</div>
                 {detailBook.author && <div className="bd-author">by {detailBook.author}</div>}
-                {detailBook.genre && <span className="genre-badge">{detailBook.genre}</span>}
+                <GenreBadge genre={detailBook.genre} />
               </div>
               {detailBook.synopsis && (
                 <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{detailBook.synopsis}</p>
@@ -486,8 +475,8 @@ export default function TBRTracker() {
             </div>
             {isOwner && (
               <div className="bd-drawer-footer">
-                <button className="bd-btn bd-btn-cancel" onClick={() => setDetailBook(null)}>Close</button>
-                <button className="bd-btn bd-btn-save" onClick={() => { setDetailBook(null); openCompleteModal(detailBook); }}>Mark as Completed</button>
+                <Button variant="cancel" onClick={() => setDetailBook(null)}>Close</Button>
+                <Button variant="save" onClick={() => { setDetailBook(null); openCompleteModal(detailBook); }}>Mark as Completed</Button>
               </div>
             )}
           </div>
@@ -521,21 +510,14 @@ export default function TBRTracker() {
                 </div>
                 <div className="bd-title">{completingBook.title}</div>
                 {completingBook.author && <div className="bd-author">by {completingBook.author}</div>}
-                {completingBook.genre && <span className="genre-badge">{completingBook.genre}</span>}
-                <div className="rating-input" onMouseLeave={() => setCompletingRatingHover(0)}>
-                  {[1,2,3,4,5].map(i => (
-                    <button key={i} type="button"
-                      className={`bd-star-interactive${(completingRatingHover || completingRating) >= i ? ' active' : ''}`}
-                      aria-label={`${i} star${i > 1 ? 's' : ''}`}
-                      onClick={() => setCompletingRating(i)}
-                      onMouseEnter={() => setCompletingRatingHover(i)}>
-                      {(completingRatingHover || completingRating) >= i
-                        ? <svg className="star-icon star-fill" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        : <svg className="star-icon star-empty" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                      }
-                    </button>
-                  ))}
-                </div>
+                <GenreBadge genre={completingBook.genre} />
+                <StarRatingInput
+                  rating={completingRating}
+                  hover={completingRatingHover}
+                  onRate={setCompletingRating}
+                  onHover={setCompletingRatingHover}
+                  onLeave={() => setCompletingRatingHover(0)}
+                />
                 <input type="date" className="bd-edit-input" id="completingDate"
                   style={{ width: 'auto' }} value={completingDate}
                   onChange={e => setCompletingDate(e.target.value)} />
@@ -545,8 +527,8 @@ export default function TBRTracker() {
               )}
             </div>
             <div className="bd-drawer-footer">
-              <button className="bd-btn bd-btn-cancel" onClick={() => setCompletingBook(null)}>Cancel</button>
-              <button className="bd-btn bd-btn-save" onClick={handleConfirmComplete}>Move to Completed</button>
+              <Button variant="cancel" onClick={() => setCompletingBook(null)}>Cancel</Button>
+              <Button variant="save" onClick={handleConfirmComplete}>Move to Completed</Button>
             </div>
           </div>
         </div>
