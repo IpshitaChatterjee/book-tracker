@@ -1604,6 +1604,7 @@ export default function BookTracker() {
                         : <div className="notes-cover-placeholder">📚</div>}
                       <h2 className="notes-title">{book.title}</h2>
                       {book.author && <p className="notes-author">by {book.author}</p>}
+                      {book.genre && <span className="genre-badge">{book.genre}</span>}
                       {book.rating > 0 && (
                         <div className="notes-rating" role="img" aria-label={`${book.rating} stars`}>
                           <Stars rating={book.rating} />
@@ -1612,7 +1613,6 @@ export default function BookTracker() {
                       {book.dateFinished && (
                         <p className="notes-date">Finished {formatDateDisplay(book.dateFinished)}</p>
                       )}
-                      {book.genre && <span className="genre-badge" style={{ marginTop: 4 }}>{book.genre}</span>}
                     </div>
                     <span className="page-number page-number--right">i</span>
                   </div>

@@ -1882,30 +1882,31 @@ html.dark .book-spine-divider {
 
 .notes-title {
   font-family: var(--font-heading), Georgia, serif;
-  font-size: 19px;
+  font-size: 28px;
   font-weight: 400;
   color: var(--text);
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  line-height: 1.2;
   text-wrap: balance;
   margin: 0;
 }
 
 .notes-author {
-  font-family: var(--font-heading), Georgia, serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 13px;
-  font-style: italic;
+  font-style: normal;
+  font-weight: 400;
   color: var(--text-muted);
   margin: 0;
 }
 
-.notes-rating { display: flex; gap: 2px; }
+.notes-rating { display: flex; gap: 4px; }
+.notes-rating .star-icon { width: 24px; height: 24px; }
 
 .notes-date {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--text-subtle);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   font-family: var(--font-sans), sans-serif;
   margin: 0;
 }
