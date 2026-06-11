@@ -204,6 +204,7 @@ export default function BookTracker() {
   const [notesBookId, setNotesBookId] = useState(null);
   const [noteInput, setNoteInput] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
+  const notesTriggerRect = React.useRef(null);
 
   // Lookup debounce
   const lookupTimerRef = useRef(null);
@@ -766,6 +767,8 @@ export default function BookTracker() {
   // ─── Notes modal ──────────────────────────────────────────
 
   function handleViewNotes() {
+    const coverEl = document.querySelector('.bd-cover-lg');
+    notesTriggerRect.current = coverEl ? coverEl.getBoundingClientRect() : null;
     setNotesBookId(detailId);
     setShowNotesModal(true);
     closeDetail();
@@ -802,16 +805,37 @@ export default function BookTracker() {
     }
   }
 
-  // GSAP open-book entrance animation
+  // GSAP open-book entrance animation — FLIP from thumbnail, then pages unfold
   useEffect(() => {
     if (!showNotesModal || !notesBookRef.current) return;
     const ctx = gsap.context(() => {
-      gsap.from(notesBookRef.current, { scale: 0.94, opacity: 0, duration: 0.30, ease: 'power3.out' });
-      gsap.from(leftPageRef.current,  { rotateY: -75, duration: 0.65, ease: 'power2.out', delay: 0.10, transformOrigin: 'right center' });
-      gsap.from(rightPageRef.current, { rotateY:  75, duration: 0.65, ease: 'power2.out', delay: 0.10, transformOrigin: 'left center' });
-      gsap.from('.notes-page-title',    { opacity: 0, y: 8,  duration: 0.30, delay: 0.45 });
-      gsap.from('.notes-list',          { opacity: 0, y: 8,  duration: 0.30, delay: 0.50 });
-      gsap.from('.notes-add-form',      { opacity: 0, y: 8,  duration: 0.30, delay: 0.55 });
+      const bookEl = notesBookRef.current;
+      const triggerRect = notesTriggerRect.current;
+
+      // Phase 1: FLIP — expand from the thumbnail's screen position
+      if (triggerRect) {
+        const bookRect = bookEl.getBoundingClientRect();
+        const fromX = (triggerRect.left + triggerRect.width / 2) - (bookRect.left + bookRect.width / 2);
+        const fromY = (triggerRect.top + triggerRect.height / 2) - (bookRect.top + bookRect.height / 2);
+        const fromScale = triggerRect.width / bookRect.width;
+        gsap.from(bookEl, {
+          x: fromX, y: fromY, scale: fromScale, opacity: 0,
+          duration: 0.55, ease: 'power3.out',
+        });
+      } else {
+        gsap.from(bookEl, { scale: 0.92, opacity: 0, duration: 0.35, ease: 'power3.out' });
+      }
+
+      // Phase 2: Pages unfold from the spine outward after book expands
+      const unfoldDelay = triggerRect ? 0.35 : 0.15;
+      gsap.from(leftPageRef.current,  { rotateY: -80, duration: 0.70, ease: 'power2.out', delay: unfoldDelay, transformOrigin: 'right center' });
+      gsap.from(rightPageRef.current, { rotateY:  80, duration: 0.70, ease: 'power2.out', delay: unfoldDelay, transformOrigin: 'left center' });
+
+      // Phase 3: Content fades in once pages are open
+      const contentDelay = unfoldDelay + 0.40;
+      gsap.from('.notes-page-title', { opacity: 0, y: 8, duration: 0.25, delay: contentDelay });
+      gsap.from('.notes-list',       { opacity: 0, y: 8, duration: 0.25, delay: contentDelay + 0.05 });
+      gsap.from('.notes-add-form',   { opacity: 0, y: 8, duration: 0.25, delay: contentDelay + 0.10 });
     }, notesBookRef);
     return () => ctx.revert();
   }, [showNotesModal, notesBookId]);
