@@ -200,17 +200,9 @@ export default function BookTracker() {
   const [openRecMenuId, setOpenRecMenuId] = useState(null);
 
   // Notes modal
-  const [showNotesModal, setShowNotesModal] = useState(false);
-  const [notesBookId, setNotesBookId] = useState(null);
-  const [noteInput, setNoteInput] = useState('');
-  const [noteSaving, setNoteSaving] = useState(false);
-  const notesTriggerRect = useRef(null);
 
   // Lookup debounce
   const lookupTimerRef = useRef(null);
-  const notesBookRef  = useRef(null);
-  const leftPageRef   = useRef(null);
-  const rightPageRef  = useRef(null);
 
   // ─── Derived ───────────────────────────────────────────────
 
@@ -287,15 +279,14 @@ export default function BookTracker() {
 
   // Modal scroll lock
   useEffect(() => {
-    document.body.style.overflow = (detailId || showAddDrawer || showNotesModal) ? 'hidden' : '';
+    document.body.style.overflow = (detailId || showAddDrawer) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [detailId, showAddDrawer, showNotesModal]);
+  }, [detailId, showAddDrawer]);
 
   // ESC key
   useEffect(() => {
     function onKey(e) {
       if (e.key !== 'Escape') return;
-      if (showNotesModal) { setShowNotesModal(false); return; }
       if (detailId) {
         if (detailMode === 'edit') exitEditMode();
         else closeDetail();
@@ -305,7 +296,7 @@ export default function BookTracker() {
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [detailId, detailMode, showLogin, showAddDrawer, showNotesModal]);
+  }, [detailId, detailMode, showLogin, showAddDrawer]);
 
   // Close open card menu on outside click
   useEffect(() => {
@@ -763,82 +754,6 @@ export default function BookTracker() {
       console.error('Failed to undo delete:', err);
     }
   }
-
-  // ─── Notes modal ──────────────────────────────────────────
-
-  function handleViewNotes() {
-    const coverEl = document.querySelector('.bd-cover-lg');
-    notesTriggerRect.current = coverEl ? coverEl.getBoundingClientRect() : null;
-    setNotesBookId(detailId);
-    setShowNotesModal(true);
-    closeDetail();
-  }
-
-  async function handleAddNote() {
-    if (!noteInput.trim() || noteSaving) return;
-    setNoteSaving(true);
-    try {
-      const book = books.find(b => b.id === notesBookId);
-      const currentNotes = book?.notes || [];
-      const newNote = { id: crypto.randomUUID(), text: noteInput.trim(), createdAt: new Date().toISOString() };
-      const updatedNotes = [...currentNotes, newNote];
-      const { error } = await supabase.from('books').update({ notes: updatedNotes }).eq('id', notesBookId).eq('user_id', OWNER_UUID);
-      if (error) throw error;
-      setBooks(prev => prev.map(b => b.id === notesBookId ? { ...b, notes: updatedNotes } : b));
-      setNoteInput('');
-    } catch (err) {
-      console.error('Failed to save note:', err?.message || err?.details || err?.code || err);
-    } finally {
-      setNoteSaving(false);
-    }
-  }
-
-  async function handleDeleteNote(bookId, noteId) {
-    const book = books.find(b => b.id === bookId);
-    const updatedNotes = (book?.notes || []).filter(n => n.id !== noteId);
-    try {
-      const { error } = await supabase.from('books').update({ notes: updatedNotes }).eq('id', bookId).eq('user_id', OWNER_UUID);
-      if (error) throw error;
-      setBooks(prev => prev.map(b => b.id === bookId ? { ...b, notes: updatedNotes } : b));
-    } catch (err) {
-      console.error('Failed to delete note:', err);
-    }
-  }
-
-  // GSAP open-book entrance animation — FLIP from thumbnail, then pages unfold
-  useEffect(() => {
-    if (!showNotesModal || !notesBookRef.current) return;
-    const ctx = gsap.context(() => {
-      const bookEl = notesBookRef.current;
-      const triggerRect = notesTriggerRect.current;
-
-      // Phase 1: FLIP — expand from the thumbnail's screen position
-      if (triggerRect) {
-        const bookRect = bookEl.getBoundingClientRect();
-        const fromX = (triggerRect.left + triggerRect.width / 2) - (bookRect.left + bookRect.width / 2);
-        const fromY = (triggerRect.top + triggerRect.height / 2) - (bookRect.top + bookRect.height / 2);
-        const fromScale = triggerRect.width / bookRect.width;
-        gsap.from(bookEl, {
-          x: fromX, y: fromY, scale: fromScale, opacity: 0,
-          duration: 0.55, ease: 'power3.out',
-        });
-      } else {
-        gsap.from(bookEl, { scale: 0.92, opacity: 0, duration: 0.35, ease: 'power3.out' });
-      }
-
-      // Phase 2: Pages unfold from the spine outward after book expands
-      const unfoldDelay = triggerRect ? 0.35 : 0.15;
-      gsap.from(leftPageRef.current,  { rotateY: -80, duration: 0.70, ease: 'power2.out', delay: unfoldDelay, transformOrigin: 'right center' });
-      gsap.from(rightPageRef.current, { rotateY:  80, duration: 0.70, ease: 'power2.out', delay: unfoldDelay, transformOrigin: 'left center' });
-
-      // Phase 3: Content fades in once pages are open
-      const contentDelay = unfoldDelay + 0.40;
-      gsap.from('.notes-page-title', { opacity: 0, y: 8, duration: 0.25, delay: contentDelay });
-      gsap.from('.notes-list',       { opacity: 0, y: 8, duration: 0.25, delay: contentDelay + 0.05 });
-      gsap.from('.notes-add-form',   { opacity: 0, y: 8, duration: 0.25, delay: contentDelay + 0.10 });
-    }, notesBookRef);
-    return () => ctx.revert();
-  }, [showNotesModal, notesBookId]);
 
   // Auto-generate recommendations when Discover tab is opened
   useEffect(() => {
@@ -1369,10 +1284,10 @@ export default function BookTracker() {
 
             {/* Sticky footer — CTAs always visible at bottom */}
             <div className="bd-drawer-footer">
-              {detailMode === 'view' && (
+              {detailMode === 'view' && isOwner && (
                 <>
-                  <button className="bd-btn bd-btn-notes" onClick={handleViewNotes}>View Notes</button>
-                  {isOwner && <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>}
+                  <button className="bd-btn bd-btn-delete" onClick={handleDeleteFromDetail}>Delete</button>
+                  <button className="bd-btn bd-btn-edit" onClick={() => enterEditMode()}>Edit</button>
                 </>
               )}
               {detailMode === 'edit' && (
@@ -1592,102 +1507,6 @@ export default function BookTracker() {
           </div>
         </div>
       )}
-
-      {/* ── Notes Open Book Modal ── */}
-      {showNotesModal && notesBookId && (() => {
-        const book = books.find(b => b.id === notesBookId);
-        if (!book) return null;
-        const notes = book.notes || [];
-        return (
-          <div
-            className="notes-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Notes for ${book.title}`}
-            onClick={e => { if (e.target === e.currentTarget) setShowNotesModal(false); }}
-          >
-            <div className="notes-book-container" ref={notesBookRef}>
-
-              {/* Close */}
-              <button className="notes-close-btn" onClick={() => setShowNotesModal(false)} aria-label="Close notes">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-
-              {/* The open book */}
-              <div className="open-book">
-
-                {/* Left page — cover only */}
-                <div className="book-page book-page--left" ref={leftPageRef}>
-                  <div className="notes-cover-page">
-                    {book.coverImage
-                      ? <img src={book.coverImage} alt={book.title} className="notes-cover" />
-                      : <div className="notes-cover-placeholder">📚</div>}
-                  </div>
-                </div>
-
-                {/* Spine */}
-                <div className="book-spine-divider" aria-hidden="true" />
-
-                {/* Right page — notes */}
-                <div className="book-page book-page--right" ref={rightPageRef}>
-                  <div className="page-inner">
-                    <h3 className="notes-page-title">Highlights</h3>
-
-                    <div className="notes-list">
-                      {notes.length === 0 ? (
-                        <p className="notes-empty">No highlights yet.{isOwner ? ' Add your first one below.' : ''}</p>
-                      ) : (
-                        notes.map(note => (
-                          <div className="note-item" key={note.id}>
-                            <p className="note-text">{note.text}</p>
-                            {isOwner && (
-                              <button
-                                className="note-delete-btn"
-                                onClick={() => handleDeleteNote(notesBookId, note.id)}
-                                aria-label="Delete note"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {isOwner && (
-                      <div className="notes-add-form">
-                        <textarea
-                          className="notes-input"
-                          placeholder="Add a highlight or note…"
-                          value={noteInput}
-                          onChange={e => setNoteInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && noteInput.trim()) { e.preventDefault(); handleAddNote(); } }}
-                          rows={3}
-                          aria-label="New note"
-                        />
-                        <button
-                          className="notes-add-btn"
-                          onClick={handleAddNote}
-                          disabled={!noteInput.trim() || noteSaving}
-                        >
-                          {noteSaving ? 'Saving…' : 'Add highlight'}
-                        </button>
-                      </div>
-                    )}
-
-                    <span className="page-number page-number--left">ii</span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       <div className={`undo-toast${undoBook ? ' active' : ''}`} role="status" aria-live="polite">
         <span className="undo-toast-message">
