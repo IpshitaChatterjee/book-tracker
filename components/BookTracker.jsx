@@ -806,13 +806,12 @@ export default function BookTracker() {
   useEffect(() => {
     if (!showNotesModal || !notesBookRef.current) return;
     const ctx = gsap.context(() => {
-      gsap.from(notesBookRef.current, { scale: 0.92, opacity: 0, duration: 0.35, ease: 'power3.out' });
-      gsap.from(leftPageRef.current,  { rotateY: -22, duration: 0.55, ease: 'power3.out', delay: 0.08 });
-      gsap.from(rightPageRef.current, { rotateY:  22, duration: 0.55, ease: 'power3.out', delay: 0.08 });
-      gsap.from('.notes-left-content',  { opacity: 0, y: 10, duration: 0.35, delay: 0.30 });
-      gsap.from('.notes-page-title',    { opacity: 0, y: 8,  duration: 0.30, delay: 0.35 });
-      gsap.from('.notes-list',          { opacity: 0, y: 8,  duration: 0.30, delay: 0.40 });
-      gsap.from('.notes-add-form',      { opacity: 0, y: 8,  duration: 0.30, delay: 0.45 });
+      gsap.from(notesBookRef.current, { scale: 0.94, opacity: 0, duration: 0.30, ease: 'power3.out' });
+      gsap.from(leftPageRef.current,  { rotateY: -75, duration: 0.65, ease: 'power2.out', delay: 0.10, transformOrigin: 'right center' });
+      gsap.from(rightPageRef.current, { rotateY:  75, duration: 0.65, ease: 'power2.out', delay: 0.10, transformOrigin: 'left center' });
+      gsap.from('.notes-page-title',    { opacity: 0, y: 8,  duration: 0.30, delay: 0.45 });
+      gsap.from('.notes-list',          { opacity: 0, y: 8,  duration: 0.30, delay: 0.50 });
+      gsap.from('.notes-add-form',      { opacity: 0, y: 8,  duration: 0.30, delay: 0.55 });
     }, notesBookRef);
     return () => ctx.revert();
   }, [showNotesModal, notesBookId]);

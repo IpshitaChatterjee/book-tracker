@@ -1803,10 +1803,12 @@ button:active { transform: scale(0.96); }
 
 .book-page--left {
   background: var(--surface-2);
+  transform-origin: right center;
 }
 
 .book-page--right {
   background: var(--surface);
+  transform-origin: left center;
 }
 
 /* Subtle ruled-line texture on right page */
