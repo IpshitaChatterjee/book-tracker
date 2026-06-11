@@ -1595,26 +1595,12 @@ export default function BookTracker() {
               {/* The open book */}
               <div className="open-book">
 
-                {/* Left page — book info */}
+                {/* Left page — cover only */}
                 <div className="book-page book-page--left" ref={leftPageRef}>
-                  <div className="page-inner">
-                    <div className="notes-left-content">
-                      {book.coverImage
-                        ? <img src={book.coverImage} alt={book.title} className="notes-cover" />
-                        : <div className="notes-cover-placeholder">📚</div>}
-                      <h2 className="notes-title">{book.title}</h2>
-                      {book.author && <p className="notes-author">by {book.author}</p>}
-                      {book.genre && <span className="genre-badge">{book.genre}</span>}
-                      {book.rating > 0 && (
-                        <div className="notes-rating" role="img" aria-label={`${book.rating} stars`}>
-                          <Stars rating={book.rating} />
-                        </div>
-                      )}
-                      {book.dateFinished && (
-                        <p className="notes-date">Finished {formatDateDisplay(book.dateFinished)}</p>
-                      )}
-                    </div>
-                    <span className="page-number page-number--right">i</span>
+                  <div className="notes-cover-page">
+                    {book.coverImage
+                      ? <img src={book.coverImage} alt={book.title} className="notes-cover" />
+                      : <div className="notes-cover-placeholder">📚</div>}
                   </div>
                 </div>
 
@@ -1624,7 +1610,7 @@ export default function BookTracker() {
                 {/* Right page — notes */}
                 <div className="book-page book-page--right" ref={rightPageRef}>
                   <div className="page-inner">
-                    <h3 className="notes-page-title">My Highlights</h3>
+                    <h3 className="notes-page-title">Highlights</h3>
 
                     <div className="notes-list">
                       {notes.length === 0 ? (
