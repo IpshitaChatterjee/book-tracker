@@ -796,6 +796,7 @@ input::placeholder,
 textarea::placeholder { color: var(--text-subtle); }
 
 input[type="date"] { color-scheme: light; }
+html.dark input[type="date"] { color-scheme: dark; }
 
 select {
   cursor: pointer;
