@@ -405,7 +405,7 @@ html.dark .add-book-cta:hover {
   user-select: none;
 }
 
-#yearFilter {
+#yearFilter, #genreFilter {
   height: 32px;
   padding: 0 28px 0 10px;
   font-family: var(--font-sans), sans-serif;
@@ -425,8 +425,8 @@ html.dark .add-book-cta:hover {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-#yearFilter:hover { border-color: var(--border-strong); }
-#yearFilter:focus {
+#yearFilter:hover, #genreFilter:hover { border-color: var(--border-strong); }
+#yearFilter:focus, #genreFilter:focus {
   outline: none;
   border-color: var(--emerald);
   box-shadow: 0 0 0 3px var(--emerald-subtle);
@@ -1596,7 +1596,7 @@ button:active { transform: scale(0.96); }
 }
 
 @media (max-width: 480px) {
-  #yearFilter { width: 100%; }
+  #yearFilter, #genreFilter { width: 100%; }
   .books-list { column-gap: 12px; }
   .stats { gap: 8px; }
   .stat-number { font-size: 18px; }
