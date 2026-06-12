@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import AddBookDrawer from './AddBookDrawer';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
@@ -273,14 +274,14 @@ export default function TBRTracker() {
         </div>
 
         <nav className="sidebar-nav" aria-label="App sections">
-          <a href="/" className="sidebar-item">
+          <Link href="/" className="sidebar-item">
             <span className="sidebar-item-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </span>
             <span className="sidebar-item-text">Completed</span>
-          </a>
+          </Link>
 
           <a href="/tbr" className="sidebar-item active">
             <span className="sidebar-item-icon">
@@ -292,14 +293,14 @@ export default function TBRTracker() {
           </a>
 
           {isOwner && (
-            <a href="/?tab=recommendations" className="sidebar-item">
+            <Link href="/?tab=recommendations" className="sidebar-item">
               <span className="sidebar-item-icon">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </span>
               <span className="sidebar-item-text">Discover</span>
-            </a>
+            </Link>
           )}
         </nav>
 
@@ -316,12 +317,12 @@ export default function TBRTracker() {
             </span>
             <span className="sidebar-item-text">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
           </button>
-          <a href="/" className={`sidebar-item${isOwner ? ' signed-in' : ''}`}>
+          <Link href="/" className={`sidebar-item${isOwner ? ' signed-in' : ''}`}>
             <span className="sidebar-item-icon">
               {isOwner ? <LockOpenSVG /> : <LockClosedSVG />}
             </span>
             <span className="sidebar-item-text">{isOwner ? 'Sign Out' : 'Sign In'}</span>
-          </a>
+          </Link>
         </div>
       </aside>
 
