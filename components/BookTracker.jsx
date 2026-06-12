@@ -1052,7 +1052,7 @@ export default function BookTracker() {
               )}
               {recsError && (
                 <div className="error-state">
-                  <div className="error-primary">⚠ Couldn't generate recommendations</div>
+                  <div className="error-primary">⚠ Couldn&apos;t generate recommendations</div>
                   <div className="error-secondary">Please try again in a moment</div>
                   <button className="add-book-cta" style={{ marginTop: 12 }} onClick={generateRecommendations}>Try again</button>
                 </div>
@@ -1060,7 +1060,7 @@ export default function BookTracker() {
               {recs === null && !recsLoading && books.length === 0 && (
                 <div className="empty-state">
                   <h3>Nothing to go on yet</h3>
-                  <p>Log at least one book to your library and we'll find reads you'll love.</p>
+                  <p>Log at least one book to your library and we&apos;ll find reads you&apos;ll love.</p>
                   <button className="empty-state-cta" onClick={() => setShowAddDrawer(true)}>Log your first book</button>
                 </div>
               )}
