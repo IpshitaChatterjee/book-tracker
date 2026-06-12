@@ -1620,6 +1620,7 @@ button:active { transform: scale(0.96); }
   .books-list { column-gap: 12px; }
   .stats { gap: 8px; }
   .stat-number { font-size: 18px; }
+  .stat-genre { font-size: 18px; }
   .form-group { margin-bottom: 14px; }
   .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
   .section-header-actions { width: 100%; justify-content: space-between; }
