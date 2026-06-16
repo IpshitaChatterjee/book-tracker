@@ -718,7 +718,7 @@ export default function BookTracker() {
     if (activeTab === 'recommendations' && recs === null && !recsLoading && !recsError && books.length > 0) {
       generateRecommendations();
     }
-  }, [activeTab]);
+  }, [activeTab, books]);
 
   // ─── Recommendations ───────────────────────────────────────
 
