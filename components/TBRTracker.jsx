@@ -526,9 +526,12 @@ export default function TBRTracker() {
                   onHover={setCompletingRatingHover}
                   onLeave={() => setCompletingRatingHover(0)}
                 />
-                <input type="date" className="bd-edit-input" id="completingDate"
-                  style={{ width: 'auto' }} value={completingDate}
-                  onChange={e => setCompletingDate(e.target.value)} />
+                <div className="bd-edit-date-wrap">
+                  <label className="bd-edit-label" htmlFor="completingDate">Date finished</label>
+                  <input type="date" className="bd-edit-input" id="completingDate"
+                    style={{ width: 'auto' }} value={completingDate}
+                    onChange={e => setCompletingDate(e.target.value)} />
+                </div>
               </div>
               {completingBook.synopsis && (
                 <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{completingBook.synopsis}</p>
