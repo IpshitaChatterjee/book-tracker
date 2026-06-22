@@ -973,8 +973,18 @@ export default function BookTracker() {
                   className="book-card"
                   data-book-id={book.id}
                   title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
                   onClick={(e) => {
                     if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
+                      openDetail(book.id);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
                       openDetail(book.id);
                     }
                   }}
@@ -1083,7 +1093,17 @@ export default function BookTracker() {
                         className="book-card"
                         data-book-id={`rec-${i}`}
                         title={`${rec.title}${rec.author ? ' — ' + rec.author : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View details for ${rec.title}${rec.author ? ' by ' + rec.author : ''}`}
                         onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailRec({ ...rec, cover: recCovers[i] || null }); }}
+                        onKeyDown={e => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setDetailRec({ ...rec, cover: recCovers[i] || null });
+                          }
+                        }}
                       >
                         <div className="books__cover">
                           <div className="books__back-cover" />

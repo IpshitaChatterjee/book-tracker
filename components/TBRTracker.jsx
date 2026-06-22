@@ -367,7 +367,17 @@ export default function TBRTracker() {
                     className="book-card tbr-book-card"
                     data-book-id={book.id}
                     title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
                     onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailBook(book); }}
+                    onKeyDown={e => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setDetailBook(book);
+                      }
+                    }}
                   >
                     <div className="books__cover">
                       <div className="books__back-cover" />
