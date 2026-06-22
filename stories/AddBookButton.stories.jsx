@@ -66,7 +66,7 @@ function ThemePanel({ vars, name, themeClass }) {
       flex: '1 1 260px',
       minWidth: 0,
     }}>
-      <p style={{ ...LABEL_STYLE, marginBottom: 20 }}>{name}</p>
+      <h3 style={{ ...LABEL_STYLE, marginBottom: 20 }}>{name}</h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {STATES.map(state => (

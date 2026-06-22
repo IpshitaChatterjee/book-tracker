@@ -80,7 +80,7 @@ function ThemePanel({ vars, name }) {
       flex: '1 1 340px',
       minWidth: 0,
     }}>
-      <p style={{ ...LABEL_STYLE, marginBottom: 20 }}>{name}</p>
+      <h3 style={{ ...LABEL_STYLE, marginBottom: 20 }}>{name}</h3>
 
       <div style={{
         display: 'grid',
