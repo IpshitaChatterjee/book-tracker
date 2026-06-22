@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import AddBookDrawer from './AddBookDrawer';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
+import { AddBookButton } from '@/components/ui/AddBookButton';
 import { StatCard } from '@/components/ui/StatCard';
 import { GenreBadge } from '@/components/ui/GenreBadge';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
@@ -332,12 +333,7 @@ export default function TBRTracker() {
           <div className="section-header">
             <h2 className="section-title">To Be Read</h2>
             {isOwner && (
-              <button className="add-book-cta" onClick={() => setShowDrawer(true)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Add Book
-              </button>
+              <AddBookButton onClick={() => setShowDrawer(true)} />
             )}
           </div>
 
@@ -360,12 +356,7 @@ export default function TBRTracker() {
               <h3>Your reading list is empty</h3>
               <p>Books you want to read next will appear here.</p>
               {isOwner && (
-                <button className="add-book-cta" style={{ marginTop: 8 }} onClick={() => setShowDrawer(true)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                  Add Book
-                </button>
+                <AddBookButton style={{ marginTop: 8 }} onClick={() => setShowDrawer(true)} />
               )}
             </div>
           ) : (

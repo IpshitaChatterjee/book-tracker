@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react
 import { gsap } from 'gsap';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
+import { AddBookButton } from '@/components/ui/AddBookButton';
 import { StatCard } from '@/components/ui/StatCard';
 import { GenreBadge } from '@/components/ui/GenreBadge';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
@@ -908,12 +909,7 @@ export default function BookTracker() {
                 </select>
               </div>
               {isOwner && (
-                <button className="add-book-cta" onClick={() => setShowAddDrawer(true)} aria-label="Add a book">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                  Add Book
-                </button>
+                <AddBookButton onClick={() => setShowAddDrawer(true)} aria-label="Add a book" />
               )}
             </div>
           </div>
