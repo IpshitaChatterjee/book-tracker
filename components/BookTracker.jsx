@@ -118,6 +118,7 @@ export default function BookTracker() {
   const [customGenre, setCustomGenre] = useState('');
   const [showCustomGenre, setShowCustomGenre] = useState(false);
   const [manualSynopsis, setManualSynopsis] = useState('');
+  const [addErrors, setAddErrors] = useState({});
 
   // Detail modal
   const [detailId, setDetailId] = useState(null);
@@ -257,7 +258,7 @@ export default function BookTracker() {
         if (detailMode === 'edit') exitEditMode();
         else closeDetail();
       }
-      if (showAddDrawer && !isAddingBook) setShowAddDrawer(false);
+      if (showAddDrawer && !isAddingBook) closeAddDrawer();
       if (showLogin) closeLogin();
     }
     document.addEventListener('keydown', onKey);
@@ -461,6 +462,11 @@ export default function BookTracker() {
 
   // ─── Add book ──────────────────────────────────────────────
 
+  function closeAddDrawer() {
+    setShowAddDrawer(false);
+    setAddErrors({});
+  }
+
   async function handleCoverFile(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -540,14 +546,22 @@ export default function BookTracker() {
 
   async function handleAddBook() {
     if (isAddingBook) return;
-    if (!addTitle.trim()) return;
-    if (!addRating) return;
-    if (!addDate) return;
+
+    const errors = {};
+    if (!addTitle.trim()) errors.title = 'Title is required';
+    if (!addRating) errors.rating = 'Select a rating';
+    if (!addDate) errors.date = 'Date finished is required';
+    if (manualGenre === 'Other' && !customGenre.trim()) errors.genre = 'Enter a name for the new genre';
+
+    if (Object.keys(errors).length > 0) {
+      setAddErrors(errors);
+      return;
+    }
+    setAddErrors({});
 
     let finalGenre = 'Other', finalAuthor = manualAuthor.trim(), finalSynopsis = manualSynopsis.trim(), finalApiRating = bookInfo?.apiRating || '';
 
     if (manualGenre === 'Other') {
-      if (!customGenre.trim()) return;
       const norm = customGenre.trim().split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       const match = allGenres.find(g => g.toLowerCase() === norm.toLowerCase());
       finalGenre = match || norm;
@@ -587,6 +601,7 @@ export default function BookTracker() {
       setCustomGenre('');
       setShowCustomGenre(false);
       setManualSynopsis('');
+      setAddErrors({});
 
       setShowAddDrawer(false);
     } catch (err) {
@@ -1323,14 +1338,14 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="addDrawerTitle"
-          onClick={e => { if (e.target === e.currentTarget && !isAddingBook) setShowAddDrawer(false); }}
+          onClick={e => { if (e.target === e.currentTarget && !isAddingBook) closeAddDrawer(); }}
         >
           <div className="book-detail-modal">
 
             {/* Sticky header */}
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="addDrawerTitle">Add Book</span>
-              <button className="book-detail-close" onClick={() => setShowAddDrawer(false)} aria-label="Close" disabled={isAddingBook}>
+              <button className="book-detail-close" onClick={closeAddDrawer} aria-label="Close" disabled={isAddingBook}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -1357,12 +1372,14 @@ export default function BookTracker() {
                 <div className="bd-cover-meta">
                   <input
                     type="text"
-                    className="bd-edit-input bd-edit-title-input"
+                    className={`bd-edit-input bd-edit-title-input${addErrors.title ? ' field-invalid' : ''}`}
                     aria-label="Title"
+                    aria-invalid={addErrors.title ? 'true' : undefined}
                     placeholder="Book title..."
                     value={addTitle}
-                    onChange={e => { setAddTitle(e.target.value); lookupBook(e.target.value); }}
+                    onChange={e => { setAddTitle(e.target.value); lookupBook(e.target.value); if (addErrors.title) setAddErrors(prev => ({ ...prev, title: undefined })); }}
                   />
+                  {addErrors.title && <div className="field-error">{addErrors.title}</div>}
                   {lookupStatus.text && (
                     <div className="bd-lookup-status" style={{ color: lookupStatus.color }}>{lookupStatus.text}</div>
                   )}
@@ -1382,6 +1399,7 @@ export default function BookTracker() {
                       setManualGenre(e.target.value);
                       setShowCustomGenre(e.target.value === 'Other');
                       if (e.target.value !== 'Other') setCustomGenre('');
+                      if (addErrors.genre) setAddErrors(prev => ({ ...prev, genre: undefined }));
                     }}
                   >
                     <option value="">Genre...</option>
@@ -1392,19 +1410,30 @@ export default function BookTracker() {
                     <StarRatingInput
                       rating={addRating}
                       hover={addRatingHover}
-                      onRate={setAddRating}
+                      onRate={r => { setAddRating(r); if (addErrors.rating) setAddErrors(prev => ({ ...prev, rating: undefined })); }}
                       onHover={setAddRatingHover}
                       onLeave={() => setAddRatingHover(0)}
                     />
                   </div>
+                  {addErrors.rating && <div className="field-error">{addErrors.rating}</div>}
                 </div>
               </div>
 
               {/* Custom genre input */}
               {showCustomGenre && (
                 <div className="form-group" style={{ margin: 0 }}>
-                  <input type="text" className="bd-edit-input" style={{ width: '100%', boxSizing: 'border-box' }} value={customGenre} placeholder="Enter custom genre name..." onChange={e => setCustomGenre(e.target.value)} />
-                  <div className="genre-hint" style={{ marginTop: 4 }}>This genre will be added to the dropdown for future use</div>
+                  <input
+                    type="text"
+                    className={`bd-edit-input${addErrors.genre ? ' field-invalid' : ''}`}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    value={customGenre}
+                    placeholder="Enter custom genre name..."
+                    aria-invalid={addErrors.genre ? 'true' : undefined}
+                    onChange={e => { setCustomGenre(e.target.value); if (addErrors.genre) setAddErrors(prev => ({ ...prev, genre: undefined })); }}
+                  />
+                  {addErrors.genre
+                    ? <div className="field-error">{addErrors.genre}</div>
+                    : <div className="genre-hint" style={{ marginTop: 4 }}>This genre will be added to the dropdown for future use</div>}
                 </div>
               )}
 
@@ -1420,7 +1449,16 @@ export default function BookTracker() {
               {/* Date */}
               <div className="bd-edit-date-wrap">
                 <label className="bd-edit-label" htmlFor="addDateFinished">Date finished</label>
-                <input type="date" className="bd-edit-input" id="addDateFinished" style={{ width: 'auto' }} value={addDate} onChange={e => setAddDate(e.target.value)} />
+                <input
+                  type="date"
+                  className={`bd-edit-input${addErrors.date ? ' field-invalid' : ''}`}
+                  id="addDateFinished"
+                  style={{ width: 'auto' }}
+                  value={addDate}
+                  aria-invalid={addErrors.date ? 'true' : undefined}
+                  onChange={e => { setAddDate(e.target.value); if (addErrors.date) setAddErrors(prev => ({ ...prev, date: undefined })); }}
+                />
+                {addErrors.date && <div className="field-error">{addErrors.date}</div>}
               </div>
 
 
@@ -1428,7 +1466,7 @@ export default function BookTracker() {
 
             {/* Sticky footer */}
             <div className="bd-drawer-footer">
-              <Button variant="cancel" disabled={isAddingBook} onClick={() => setShowAddDrawer(false)}>Cancel</Button>
+              <Button variant="cancel" disabled={isAddingBook} onClick={closeAddDrawer}>Cancel</Button>
               <Button variant="save" loading={isAddingBook} onClick={handleAddBook}>Add Book</Button>
             </div>
 
