@@ -11,6 +11,7 @@ export function Button({ variant = 'save', children, onClick, disabled, loading 
     >
       {loading && <span className="btn-spinner" aria-hidden="true" />}
       {children}
+      <span className="sr-only" role="status" aria-live="polite">{loading ? 'Loading' : ''}</span>
     </button>
   );
 }

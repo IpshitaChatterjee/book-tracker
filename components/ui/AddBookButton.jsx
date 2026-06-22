@@ -6,7 +6,9 @@ const PlusIcon = (
   </svg>
 );
 
-export function AddBookButton({ children = 'Add Book', icon = PlusIcon, onClick, disabled, loading = false, className = '', style, ...props }) {
+export function AddBookButton({ children = 'Add Book', icon = PlusIcon, ariaLabel, onClick, disabled, loading = false, className = '', style, ...props }) {
+  const accessibleLabel = ariaLabel || props['aria-label'] || (typeof children === 'string' && children ? children : undefined);
+
   return (
     <button
       type="button"
@@ -16,9 +18,11 @@ export function AddBookButton({ children = 'Add Book', icon = PlusIcon, onClick,
       aria-busy={loading || undefined}
       style={style}
       {...props}
+      aria-label={accessibleLabel}
     >
       {loading ? <span className="btn-spinner" aria-hidden="true" /> : icon}
       {children}
+      <span className="sr-only" role="status" aria-live="polite">{loading ? 'Loading' : ''}</span>
     </button>
   );
 }
