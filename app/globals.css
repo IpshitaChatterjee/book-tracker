@@ -931,6 +931,24 @@ button:active { transform: scale(0.96); }
   transform: none;
 }
 
+/* ─── Solid destructive button — confirmation dialogs ─── */
+.confirm-delete-btn {
+  background: var(--red);
+  color: #fff;
+  border: none;
+}
+
+.confirm-delete-btn:hover {
+  background: var(--red);
+  filter: brightness(0.9);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
+
+.confirm-delete-btn:active { transform: scale(0.96); filter: none; }
+
 /* ─── Manual Entry ─── */
 .manual-entry-section {
   background: var(--surface);
