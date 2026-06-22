@@ -463,6 +463,19 @@ export default function BookTracker() {
     reader.readAsDataURL(file);
   }
 
+  async function fetchCoverForLookup(title, author) {
+    try {
+      const params = new URLSearchParams({ title, author: author || '', limit: 1, fields: 'cover_i' });
+      const res = await fetch(`https://openlibrary.org/search.json?${params}`);
+      const data = await res.json();
+      const coverId = data.docs?.[0]?.cover_i;
+      if (coverId) {
+        // Don't clobber a cover the user already pasted/uploaded themselves
+        setAddCover(prev => prev || `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`);
+      }
+    } catch { /* silently skip */ }
+  }
+
   async function lookupBook(title) {
     if (title.length < 3) {
       setLookupStatus({ text: '', color: '' });
@@ -501,12 +514,14 @@ export default function BookTracker() {
             setShowCustomGenre(true);
             setManualSynopsis(parsed.synopsis);
             setBookInfo({ author: parsed.author, genre: parsed.genre, synopsis: parsed.synopsis, apiRating: parsed.rating });
+            fetchCoverForLookup(title, parsed.author);
           } else {
             setLookupStatus({ text: `✓ Found: ${parsed.author} — ${parsed.genre}`, color: 'var(--green-light)' });
             setManualAuthor(parsed.author);
             setManualGenre(parsed.genre);
             setManualSynopsis(parsed.synopsis);
             setBookInfo({ author: parsed.author, genre: parsed.genre, synopsis: parsed.synopsis, apiRating: parsed.rating });
+            fetchCoverForLookup(title, parsed.author);
           }
         }
       } catch {
