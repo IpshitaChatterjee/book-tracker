@@ -1,6 +1,7 @@
 /* ─── Design Tokens ─── */
 :root {
   /* ── Light Mode: Moonlit Parchment ── */
+  color-scheme: light;
 
   /* Surface */
   --bg:              #F8F4EC;
@@ -17,7 +18,7 @@
   /* Text */
   --text:            #211C14;
   --text-muted:      #6B5E48;
-  --text-subtle:     #998A72;
+  --text-subtle:     #7C6850;
 
   /* Accent — stars stay amber (firefly warmth) */
   --amber:           #C97820;
@@ -49,6 +50,8 @@
 
 /* ── Dark Mode: Enchanted Forest ── */
 html.dark {
+  color-scheme: dark;
+
   /* Surface */
   --bg:              #0E1610;
   --sidebar-bg:      #121D14;
@@ -64,7 +67,7 @@ html.dark {
   /* Text */
   --text:            #D8EDCC;
   --text-muted:      #7CA87A;
-  --text-subtle:     #3E5A3C;
+  --text-subtle:     #6E8C6B;
 
   /* Stars still amber — fireflies in the dark */
   --amber:           #D4892A;
