@@ -59,6 +59,7 @@ export default function TBRTracker() {
   const [completingRating, setCompletingRating] = useState(0);
   const [completingRatingHover, setCompletingRatingHover] = useState(0);
   const [completingDate, setCompletingDate] = useState('');
+  const [isCompletingBook, setIsCompletingBook] = useState(false);
   const gsapTimelinesRef = useRef([]);
 
   useEffect(() => {
@@ -216,21 +217,26 @@ export default function TBRTracker() {
   }
 
   async function handleConfirmComplete() {
-    if (!completingBook) return;
+    if (!completingBook || isCompletingBook) return;
     const book = completingBook;
-    setCompletingBook(null);
-    setBooks(prev => prev.filter(b => b.id !== book.id));
-    await supabase.from('books').insert([{
-      user_id: OWNER_UUID,
-      title: book.title,
-      author: book.author,
-      genre: book.genre,
-      rating: completingRating || null,
-      date_finished: completingDate,
-      cover_image: book.coverImage,
-      synopsis: book.synopsis,
-    }]);
-    await supabase.from('tbr_books').delete().eq('id', book.id);
+    setIsCompletingBook(true);
+    try {
+      setBooks(prev => prev.filter(b => b.id !== book.id));
+      await supabase.from('books').insert([{
+        user_id: OWNER_UUID,
+        title: book.title,
+        author: book.author,
+        genre: book.genre,
+        rating: completingRating || null,
+        date_finished: completingDate,
+        cover_image: book.coverImage,
+        synopsis: book.synopsis,
+      }]);
+      await supabase.from('tbr_books').delete().eq('id', book.id);
+      setCompletingBook(null);
+    } finally {
+      setIsCompletingBook(false);
+    }
   }
 
   function toggleDark() {
@@ -492,12 +498,12 @@ export default function TBRTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="completeModalTitle"
-          onClick={e => { if (e.target === e.currentTarget) setCompletingBook(null); }}
+          onClick={e => { if (e.target === e.currentTarget && !isCompletingBook) setCompletingBook(null); }}
         >
           <div className="book-detail-modal">
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="completeModalTitle">Mark as Completed</span>
-              <button className="book-detail-close" onClick={() => setCompletingBook(null)} aria-label="Close">
+              <button className="book-detail-close" onClick={() => setCompletingBook(null)} aria-label="Close" disabled={isCompletingBook}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -529,8 +535,8 @@ export default function TBRTracker() {
               )}
             </div>
             <div className="bd-drawer-footer">
-              <Button variant="cancel" onClick={() => setCompletingBook(null)}>Cancel</Button>
-              <Button variant="save" onClick={handleConfirmComplete}>Move to Completed</Button>
+              <Button variant="cancel" disabled={isCompletingBook} onClick={() => setCompletingBook(null)}>Cancel</Button>
+              <Button variant="save" loading={isCompletingBook} onClick={handleConfirmComplete}>Move to Completed</Button>
             </div>
           </div>
         </div>

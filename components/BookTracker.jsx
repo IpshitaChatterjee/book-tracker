@@ -102,6 +102,7 @@ export default function BookTracker() {
 
   // Add Book drawer
   const [showAddDrawer, setShowAddDrawer] = useState(false);
+  const [isAddingBook, setIsAddingBook] = useState(false);
 
   // Add-book form
   const [addTitle, setAddTitle] = useState('');
@@ -161,6 +162,7 @@ export default function BookTracker() {
   const [recCovers, setRecCovers] = useState({});
   const [detailRec, setDetailRec] = useState(null);
   const [openRecMenuId, setOpenRecMenuId] = useState(null);
+  const [isMovingRec, setIsMovingRec] = useState(false);
 
   // Notes modal
 
@@ -537,6 +539,7 @@ export default function BookTracker() {
   }
 
   async function handleAddBook() {
+    if (isAddingBook) return;
     if (!addTitle.trim()) return;
     if (!addRating) return;
     if (!addDate) return;
@@ -564,6 +567,7 @@ export default function BookTracker() {
       apiRating: finalApiRating,
     };
 
+    setIsAddingBook(true);
     try {
       const newId = await saveBookToSupabase(book);
       book.id = newId;
@@ -588,6 +592,8 @@ export default function BookTracker() {
     } catch (err) {
       console.error('Error adding book:', err);
       alert('Error adding book. Check console for details.');
+    } finally {
+      setIsAddingBook(false);
     }
   }
 
@@ -686,6 +692,7 @@ export default function BookTracker() {
   }
 
   async function saveDetailChanges() {
+    if (isSavingDetail) return;
     const book = books.find(b => b.id === detailId);
     if (!book) return;
     if (!detailEditTitle.trim() || !detailEditDate) return;
@@ -701,12 +708,15 @@ export default function BookTracker() {
       coverImage: detailEditCover !== undefined ? detailEditCover : book.coverImage,
     };
 
+    setIsSavingDetail(true);
     try {
       await updateBookInSupabase(updated);
       setBooks(prev => prev.map(b => b.id === updated.id ? updated : b));
       closeDetail();
     } catch (err) {
       console.error('Failed to save changes:', err);
+    } finally {
+      setIsSavingDetail(false);
     }
   }
 
@@ -755,15 +765,21 @@ export default function BookTracker() {
   // ─── Recommendations ───────────────────────────────────────
 
   async function handleMoveRecToTBR(rec, cover) {
-    await supabase.from('tbr_books').insert([{
-      user_id: OWNER_UUID,
-      title: rec.title,
-      author: rec.author,
-      genre: rec.genre,
-      cover_image: cover || null,
-      synopsis: rec.reason,
-    }]);
-    setRecs(prev => prev.filter(r => r.title !== rec.title));
+    if (isMovingRec) return;
+    setIsMovingRec(true);
+    try {
+      await supabase.from('tbr_books').insert([{
+        user_id: OWNER_UUID,
+        title: rec.title,
+        author: rec.author,
+        genre: rec.genre,
+        cover_image: cover || null,
+        synopsis: rec.reason,
+      }]);
+      setRecs(prev => prev.filter(r => r.title !== rec.title));
+    } finally {
+      setIsMovingRec(false);
+    }
   }
 
   async function fetchCoverForRec(rec, index) {
@@ -1068,14 +1084,17 @@ export default function BookTracker() {
           <div id="recommendations" className={`tab-content${activeTab === 'recommendations' ? ' active' : ''}`}>
             <div className="section-header">
               <h2 className="section-title">Discover the Next Read</h2>
-              {!recsLoading && (
-                <button className="add-book-cta" onClick={() => { setRecs(null); setRecCovers({}); generateRecommendations(); }}>
+              <AddBookButton
+                loading={recsLoading}
+                icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                   </svg>
-                  Refresh
-                </button>
-              )}
+                }
+                onClick={() => { setRecs(null); setRecCovers({}); generateRecommendations(); }}
+              >
+                Refresh
+              </AddBookButton>
             </div>
             {/* Spacer matching stats section height so shelf aligns with other pages */}
             <div style={{ height: 99 }} aria-hidden="true" />
@@ -1187,14 +1206,14 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="bdTitle"
-          onClick={e => { if (e.target === e.currentTarget) closeDetail(); }}
+          onClick={e => { if (e.target === e.currentTarget && !isSavingDetail) closeDetail(); }}
         >
           <div className="book-detail-modal">
 
             {/* Sticky header with close button */}
             <div className="bd-drawer-header">
               <span className="bd-drawer-title">Book Details</span>
-              <button className="book-detail-close" onClick={closeDetail} aria-label="Close">
+              <button className="book-detail-close" onClick={closeDetail} aria-label="Close" disabled={isSavingDetail}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -1304,14 +1323,14 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="addDrawerTitle"
-          onClick={e => { if (e.target === e.currentTarget) setShowAddDrawer(false); }}
+          onClick={e => { if (e.target === e.currentTarget && !isAddingBook) setShowAddDrawer(false); }}
         >
           <div className="book-detail-modal">
 
             {/* Sticky header */}
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="addDrawerTitle">Add Book</span>
-              <button className="book-detail-close" onClick={() => setShowAddDrawer(false)} aria-label="Close">
+              <button className="book-detail-close" onClick={() => setShowAddDrawer(false)} aria-label="Close" disabled={isAddingBook}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -1409,8 +1428,8 @@ export default function BookTracker() {
 
             {/* Sticky footer */}
             <div className="bd-drawer-footer">
-              <Button variant="cancel" onClick={() => setShowAddDrawer(false)}>Cancel</Button>
-              <Button variant="save" onClick={handleAddBook}>Add Book</Button>
+              <Button variant="cancel" disabled={isAddingBook} onClick={() => setShowAddDrawer(false)}>Cancel</Button>
+              <Button variant="save" loading={isAddingBook} onClick={handleAddBook}>Add Book</Button>
             </div>
 
           </div>
@@ -1480,12 +1499,12 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="recDetailTitle"
-          onClick={e => { if (e.target === e.currentTarget) setDetailRec(null); }}
+          onClick={e => { if (e.target === e.currentTarget && !isMovingRec) setDetailRec(null); }}
         >
           <div className="book-detail-modal">
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="recDetailTitle">Book Details</span>
-              <button className="book-detail-close" onClick={() => setDetailRec(null)} aria-label="Close">
+              <button className="book-detail-close" onClick={() => setDetailRec(null)} aria-label="Close" disabled={isMovingRec}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -1516,8 +1535,8 @@ export default function BookTracker() {
             </div>
             {isOwner && (
               <div className="bd-drawer-footer">
-                <Button variant="cancel" onClick={() => setDetailRec(null)}>Close</Button>
-                <Button variant="save" onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</Button>
+                <Button variant="cancel" disabled={isMovingRec} onClick={() => setDetailRec(null)}>Close</Button>
+                <Button variant="save" loading={isMovingRec} onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</Button>
               </div>
             )}
           </div>
