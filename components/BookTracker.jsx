@@ -129,9 +129,13 @@ export default function BookTracker() {
   const [detailEditGenre, setDetailEditGenre] = useState('');
   const [detailEditSynopsis, setDetailEditSynopsis] = useState('');
   const [detailEditDate, setDetailEditDate] = useState('');
+  const [isSavingDetail, setIsSavingDetail] = useState(false);
 
   // Open menus
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, title, fromDetail }
 
   // Login modal
   const [showLogin, setShowLogin] = useState(false);
@@ -238,24 +242,25 @@ export default function BookTracker() {
 
   // Modal scroll lock
   useEffect(() => {
-    document.body.style.overflow = (detailId || showAddDrawer) ? 'hidden' : '';
+    document.body.style.overflow = (detailId || showAddDrawer || confirmDelete) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [detailId, showAddDrawer]);
+  }, [detailId, showAddDrawer, confirmDelete]);
 
   // ESC key
   useEffect(() => {
     function onKey(e) {
       if (e.key !== 'Escape') return;
-      if (detailId) {
+      if (confirmDelete) { setConfirmDelete(null); return; }
+      if (detailId && !isSavingDetail) {
         if (detailMode === 'edit') exitEditMode();
         else closeDetail();
       }
-      if (showAddDrawer) setShowAddDrawer(false);
+      if (showAddDrawer && !isAddingBook) setShowAddDrawer(false);
       if (showLogin) closeLogin();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [detailId, detailMode, showLogin, showAddDrawer]);
+  }, [detailId, detailMode, showLogin, showAddDrawer, confirmDelete, isAddingBook, isSavingDetail]);
 
   // Close open card menu on outside click
   useEffect(() => {
@@ -599,6 +604,17 @@ export default function BookTracker() {
     deletedCacheRef.current = { ...book };
     await deleteBook(bookId);
     showUndo(deletedCacheRef.current);
+  }
+
+  async function confirmDeleteBook() {
+    if (!confirmDelete) return;
+    const pending = confirmDelete;
+    setConfirmDelete(null);
+    if (pending.fromDetail) {
+      await handleDeleteFromDetail();
+    } else {
+      await handleDeleteBook(pending.id);
+    }
   }
 
   async function handleMoveToTBR(bookId) {
@@ -1030,7 +1046,7 @@ export default function BookTracker() {
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                           Move to TBR
                         </button>
-                        <button className="book-menu-item delete-item" onClick={async (e) => { e.stopPropagation(); setOpenMenuId(null); await handleDeleteBook(book.id); }}>
+                        <button className="book-menu-item delete-item" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setConfirmDelete({ id: book.id, title: book.title }); }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                           Delete
                         </button>
@@ -1264,15 +1280,15 @@ export default function BookTracker() {
             <div className="bd-drawer-footer">
               {detailMode === 'view' && isOwner && (
                 <>
-                  <Button variant="delete" onClick={handleDeleteFromDetail}>Delete</Button>
+                  <Button variant="delete" onClick={() => setConfirmDelete({ id: detailId, title: detailBook?.title, fromDetail: true })}>Delete</Button>
                   <Button variant="edit" onClick={() => enterEditMode()}>Edit</Button>
                 </>
               )}
               {detailMode === 'edit' && (
                 <>
-                  <Button variant="delete" onClick={handleDeleteFromDetail}>Delete</Button>
-                  <Button variant="cancel" onClick={exitEditMode}>Cancel</Button>
-                  <Button variant="save" onClick={saveDetailChanges}>Save Changes</Button>
+                  <Button variant="delete" disabled={isSavingDetail} onClick={() => setConfirmDelete({ id: detailId, title: detailBook?.title, fromDetail: true })}>Delete</Button>
+                  <Button variant="cancel" disabled={isSavingDetail} onClick={exitEditMode}>Cancel</Button>
+                  <Button variant="save" loading={isSavingDetail} onClick={saveDetailChanges}>Save Changes</Button>
                 </>
               )}
             </div>
@@ -1429,6 +1445,28 @@ export default function BookTracker() {
             <div className="login-modal-footer">
               <button type="button" className="cancel-btn" onClick={closeLogin}>Cancel</button>
               <button type="button" onClick={handleLoginSubmit}>Sign In</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {confirmDelete && (
+        <div
+          className="login-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirmDeleteTitle"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+        >
+          <div className="login-modal">
+            <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              {confirmDelete.title} will be removed from your library.
+            </p>
+            <div className="login-modal-footer">
+              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus>Cancel</button>
+              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook}>Delete</button>
             </div>
           </div>
         </div>
