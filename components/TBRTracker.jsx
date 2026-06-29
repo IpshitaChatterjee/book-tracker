@@ -61,6 +61,7 @@ export default function TBRTracker() {
   const [completingDate, setCompletingDate] = useState('');
   const [isCompletingBook, setIsCompletingBook] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, title }
+  const [isDeleting, setIsDeleting] = useState(false);
   const [undoBook, setUndoBook] = useState(null);
   const undoTimerRef = useRef(null);
   const deletedCacheRef = useRef(null);
@@ -113,6 +114,8 @@ export default function TBRTracker() {
       card.removeEventListener('mouseleave', onLeave);
     });
     gsapTimelinesRef.current = [];
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const cards = document.querySelectorAll('.tbr-book-card[data-book-id]');
     cards.forEach(card => {
@@ -222,10 +225,15 @@ export default function TBRTracker() {
   }
 
   async function confirmDeleteBook() {
-    if (!confirmDelete) return;
+    if (!confirmDelete || isDeleting) return;
+    setIsDeleting(true);
     const pending = confirmDelete;
-    setConfirmDelete(null);
-    await handleDelete(pending.id);
+    try {
+      await handleDelete(pending.id);
+    } finally {
+      setIsDeleting(false);
+      setConfirmDelete(null);
+    }
   }
 
   function showUndo(book) {
@@ -416,7 +424,7 @@ export default function TBRTracker() {
               <h3>Your reading list is empty</h3>
               <p>Books you want to read next will appear here.</p>
               {isOwner && (
-                <AddBookButton style={{ marginTop: 8 }} onClick={() => setShowDrawer(true)} />
+                <AddBookButton style={{ marginTop: 'var(--spacing-2)' }} onClick={() => setShowDrawer(true)} />
               )}
             </div>
           ) : (
@@ -426,19 +434,12 @@ export default function TBRTracker() {
                   <div
                     className="book-card tbr-book-card"
                     data-book-id={book.id}
-                    title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
-                    onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailBook(book); }}
-                    onKeyDown={e => {
-                      if (e.target !== e.currentTarget) return;
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setDetailBook(book);
-                      }
-                    }}
                   >
+                    <button
+                      className="book-card-select-btn"
+                      aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
+                      onClick={() => setDetailBook(book)}
+                    />
                     <div className="books__cover">
                       <div className="books__back-cover" />
                       <div className="books__inside">
@@ -532,7 +533,7 @@ export default function TBRTracker() {
                 <GenreBadge genre={detailBook.genre} />
               </div>
               {detailBook.synopsis && (
-                <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{detailBook.synopsis}</p>
+                <p className="bd-synopsis">{detailBook.synopsis}</p>
               )}
             </div>
             {isOwner && (
@@ -610,12 +611,14 @@ export default function TBRTracker() {
         >
           <div className="login-modal">
             <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+            <p className="bd-synopsis bd-synopsis--muted">
               {confirmDelete.title} will be removed from your reading list.
             </p>
             <div className="login-modal-footer">
-              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus>Cancel</button>
-              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook}>Delete</button>
+              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus disabled={isDeleting}>Cancel</button>
+              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook} disabled={isDeleting}>
+                {isDeleting ? 'Deleting…' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

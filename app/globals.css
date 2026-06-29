@@ -15,6 +15,12 @@
   --border:          #DDD5C0;
   --border-strong:   #C4B99E;
 
+  /* Spacing scale */
+  --spacing-1:       4px;
+  --spacing-2:       8px;
+  --spacing-3:       12px;
+  --spacing-4:       16px;
+
   /* Text */
   --text:            #211C14;
   --text-muted:      #6B5E48;
@@ -685,6 +691,16 @@ html.dark .cover-placeholder-dark { display: block; }
   box-shadow: var(--shadow-xs);
   backdrop-filter: blur(4px);
   z-index: 20;
+}
+
+.book-card-select-btn {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+  border-radius: inherit;
 }
 
 .book-card:hover .delete-btn-icon { opacity: 1; }
@@ -1378,6 +1394,8 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   text-wrap: pretty;
   margin: 0;
 }
+
+.bd-synopsis--muted { color: var(--text-muted); }
 
 .bd-meta-list {
   display: flex;
