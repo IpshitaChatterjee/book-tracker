@@ -15,6 +15,12 @@
   --border:          #DDD5C0;
   --border-strong:   #C4B99E;
 
+  /* Spacing scale */
+  --spacing-1:       4px;
+  --spacing-2:       8px;
+  --spacing-3:       12px;
+  --spacing-4:       16px;
+
   /* Text */
   --text:            #211C14;
   --text-muted:      #6B5E48;
@@ -35,6 +41,11 @@
   --green-subtle:    rgba(42,94,60,0.10);
   --red:             #C03535;
   --red-subtle:      rgba(192,53,53,0.08);
+  --white:           #fff;
+
+  /* Book 3D card */
+  --book-spine:      #111;
+  --book-page:       #fff;
 
   /* Primary action — dark forest ink */
   --primary:         #1A2D1E;
@@ -533,7 +544,7 @@ html.dark .shelf-line {
   width: 96%;
   height: 96%;
   top: 2%; left: 2%;
-  background: #111;
+  background: var(--book-spine);
   border-radius: 0 6px 6px 0;
   box-shadow: 2px 2px 5px rgba(0,0,0,0.25);
   z-index: 1;
@@ -554,7 +565,7 @@ html.dark .shelf-line {
   top: 0; right: 0;
   width: 98%;
   height: 100%;
-  background: #fff;
+  background: var(--book-page);
   border: 1px solid rgba(0,0,0,0.2);
   border-radius: 0 6px 6px 0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
@@ -669,30 +680,53 @@ html.dark .cover-placeholder-dark { display: block; }
 
 .delete-btn-icon {
   position: absolute;
-  top: 6px; right: 6px;
-  width: 26px; height: 26px;
+  top: -3px; right: -3px;
+  width: 44px; height: 44px;
   border-radius: 5px;
-  background: rgba(255,255,255,0.9);
+  background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, box-shadow 0.12s, opacity 0.15s;
+  transition: opacity 0.15s;
   padding: 0;
   opacity: 0;
+  z-index: 20;
+}
+
+.delete-btn-icon::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-xs);
   backdrop-filter: blur(4px);
-  z-index: 20;
+  pointer-events: none;
+  transition: background 0.12s, box-shadow 0.12s;
+}
+
+.book-card-select-btn {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+  border-radius: inherit;
 }
 
 .book-card:hover .delete-btn-icon { opacity: 1; }
 .delete-btn-icon:hover {
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
   color: var(--text);
   transform: none;
+}
+.delete-btn-icon:hover::before {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .book-menu {
@@ -770,7 +804,7 @@ html.dark .cover-placeholder-dark { display: block; }
 .empty-state-cta {
   display: inline-flex;
   width: auto;
-  margin-top: 0;
+  margin-top: var(--spacing-2);
 }
 
 /* ═══════════════════════════════════════
@@ -808,6 +842,15 @@ input:not([type="file"]):not([type="hidden"]):hover,
 select:hover,
 textarea:hover {
   border-color: var(--border-strong);
+}
+
+/* Prevent iOS Safari from zooming in on focused inputs (requires ≥16px) */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 input:not([type="file"]):not([type="hidden"]):focus,
@@ -945,7 +988,7 @@ button:active { transform: scale(0.96); }
 /* ─── Solid destructive button — confirmation dialogs ─── */
 .confirm-delete-btn {
   background: var(--red);
-  color: #fff;
+  color: var(--white);
   border: none;
 }
 
@@ -1228,6 +1271,8 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   scrollbar-color: var(--border) transparent;
 }
 
+.bd-drawer-body--gap-lg { gap: var(--spacing-4); }
+
 /* Cover + side-meta row at top */
 .bd-cover-row {
   display: flex;
@@ -1284,7 +1329,7 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   position: absolute;
   bottom: 0; left: 0; right: 0;
   background: rgba(0,0,0,0.55);
-  color: #fff;
+  color: var(--white);
   font-size: 11px;
   font-family: var(--font-sans), sans-serif;
   display: flex;
@@ -1379,6 +1424,8 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   margin: 0;
 }
 
+.bd-synopsis--muted { color: var(--text-muted); }
+
 .bd-meta-list {
   display: flex;
   flex-direction: column;
@@ -1428,6 +1475,9 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
 .bd-btn-cancel:hover { background: var(--surface-2); box-shadow: none; }
 .bd-btn-save   { background: var(--primary); border: 1px solid var(--primary); color: var(--primary-fg); min-width: 110px; box-shadow: var(--shadow-xs); }
 .bd-btn-save:hover { background: var(--primary); opacity: 0.88; box-shadow: var(--shadow-sm); }
+.bd-btn-destructive { background: var(--red); border: 1px solid var(--red); color: var(--white); min-width: 64px; box-shadow: var(--shadow-xs); }
+.bd-btn-destructive:hover { filter: brightness(1.1); box-shadow: var(--shadow-sm); }
+html.dark .bd-btn-destructive:hover { filter: brightness(1.15); }
 
 /* Edit mode form fields */
 .bd-edit-input, .bd-edit-select, .bd-edit-textarea {
@@ -1537,6 +1587,25 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   box-shadow: none;
 }
 .undo-toast-btn:hover { background: rgba(255,255,255,0.24); transform: none; }
+.undo-toast-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.error-toast {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  background: var(--red);
+  color: var(--white);
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 13px;
+  z-index: 2000;
+  box-shadow: var(--shadow-xl);
+  animation: toast-in 0.25s ease;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(80px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
 
 /* ═══════════════════════════════════════
    AUTH UI
