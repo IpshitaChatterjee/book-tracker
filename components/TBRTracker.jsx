@@ -436,6 +436,7 @@ export default function TBRTracker() {
                     data-book-id={book.id}
                   >
                     <button
+                      type="button"
                       className="book-card-select-btn"
                       aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
                       onClick={() => setDetailBook(book)}
