@@ -41,6 +41,11 @@
   --green-subtle:    rgba(42,94,60,0.10);
   --red:             #C03535;
   --red-subtle:      rgba(192,53,53,0.08);
+  --white:           #fff;
+
+  /* Book 3D card */
+  --book-spine:      #111;
+  --book-page:       #fff;
 
   /* Primary action — dark forest ink */
   --primary:         #1A2D1E;
@@ -539,7 +544,7 @@ html.dark .shelf-line {
   width: 96%;
   height: 96%;
   top: 2%; left: 2%;
-  background: #111;
+  background: var(--book-spine);
   border-radius: 0 6px 6px 0;
   box-shadow: 2px 2px 5px rgba(0,0,0,0.25);
   z-index: 1;
@@ -560,7 +565,7 @@ html.dark .shelf-line {
   top: 0; right: 0;
   width: 98%;
   height: 100%;
-  background: #fff;
+  background: var(--book-page);
   border: 1px solid rgba(0,0,0,0.2);
   border-radius: 0 6px 6px 0;
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
@@ -976,7 +981,7 @@ button:active { transform: scale(0.96); }
 /* ─── Solid destructive button — confirmation dialogs ─── */
 .confirm-delete-btn {
   background: var(--red);
-  color: #fff;
+  color: var(--white);
   border: none;
 }
 
@@ -1317,7 +1322,7 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   position: absolute;
   bottom: 0; left: 0; right: 0;
   background: rgba(0,0,0,0.55);
-  color: #fff;
+  color: var(--white);
   font-size: 11px;
   font-family: var(--font-sans), sans-serif;
   display: flex;
@@ -1572,6 +1577,25 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   box-shadow: none;
 }
 .undo-toast-btn:hover { background: rgba(255,255,255,0.24); transform: none; }
+.undo-toast-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.error-toast {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  background: var(--red);
+  color: var(--white);
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 13px;
+  z-index: 2000;
+  box-shadow: var(--shadow-xl);
+  animation: toast-in 0.25s ease;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(80px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
 
 /* ═══════════════════════════════════════
    AUTH UI

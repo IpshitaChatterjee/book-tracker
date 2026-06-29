@@ -12,6 +12,26 @@ import { GenreBadge } from '@/components/ui/GenreBadge';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
 import { StarRatingInput } from '@/components/ui/StarRatingInput';
 
+function useFocusTrap(active) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!active || !ref.current) return;
+    const el = ref.current;
+    const sel = 'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    function onKeyDown(e) {
+      if (e.key !== 'Tab') return;
+      const nodes = [...el.querySelectorAll(sel)];
+      if (!nodes.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    el.addEventListener('keydown', onKeyDown);
+    return () => el.removeEventListener('keydown', onKeyDown);
+  }, [active]);
+  return ref;
+}
+
 const MoonSVG = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -63,8 +83,14 @@ export default function TBRTracker() {
   const [confirmDelete, setConfirmDelete] = useState(null); // { id, title }
   const [isDeleting, setIsDeleting] = useState(false);
   const [undoBook, setUndoBook] = useState(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
   const undoTimerRef = useRef(null);
   const deletedCacheRef = useRef(null);
+
+  const detailTrapRef = useFocusTrap(!!detailBook);
+  const completeTrapRef = useFocusTrap(!!completingBook);
+  const deleteTrapRef = useFocusTrap(!!confirmDelete);
   const gsapTimelinesRef = useRef([]);
 
   useEffect(() => {
@@ -221,7 +247,15 @@ export default function TBRTracker() {
     deletedCacheRef.current = { ...book };
     setBooks(prev => prev.filter(b => b.id !== id));
     showUndo(deletedCacheRef.current);
-    await supabase.from('tbr_books').delete().eq('id', id);
+    const { error } = await supabase.from('tbr_books').delete().eq('id', id);
+    if (error) {
+      clearTimeout(undoTimerRef.current);
+      setUndoBook(null);
+      deletedCacheRef.current = null;
+      setBooks(prev => [book, ...prev.filter(b => b.id !== book.id)]);
+      setDeleteError('Could not delete. Please try again.');
+      setTimeout(() => setDeleteError(null), 4000);
+    }
   }
 
   async function confirmDeleteBook() {
@@ -247,7 +281,8 @@ export default function TBRTracker() {
 
   async function handleUndo() {
     const book = deletedCacheRef.current;
-    if (!book) return;
+    if (!book || isUndoing) return;
+    setIsUndoing(true);
     clearTimeout(undoTimerRef.current);
     setUndoBook(null);
     deletedCacheRef.current = null;
@@ -268,6 +303,8 @@ export default function TBRTracker() {
       setBooks(prev => [{ ...book, id: data[0].id }, ...prev]);
     } catch (err) {
       console.error('Failed to undo delete:', err);
+    } finally {
+      setIsUndoing(false);
     }
   }
 
@@ -513,11 +550,12 @@ export default function TBRTracker() {
           aria-labelledby="tbrDetailTitle"
           onClick={e => { if (e.target === e.currentTarget) setDetailBook(null); }}
           onKeyDown={e => { if (e.key === 'Escape') setDetailBook(null); }}
+          tabIndex={-1}
         >
-          <div className="book-detail-modal">
+          <div className="book-detail-modal" ref={detailTrapRef}>
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="tbrDetailTitle">Book Details</span>
-              <button className="book-detail-close" onClick={() => setDetailBook(null)} aria-label="Close">
+              <button className="book-detail-close" onClick={() => setDetailBook(null)} aria-label="Close" autoFocus>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -556,8 +594,10 @@ export default function TBRTracker() {
           aria-modal="true"
           aria-labelledby="completeModalTitle"
           onClick={e => { if (e.target === e.currentTarget && !isCompletingBook) setCompletingBook(null); }}
+          onKeyDown={e => { if (e.key === 'Escape' && !isCompletingBook) setCompletingBook(null); }}
+          tabIndex={-1}
         >
-          <div className="book-detail-modal">
+          <div className="book-detail-modal" ref={completeTrapRef}>
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="completeModalTitle">Mark as Completed</span>
               <button className="book-detail-close" onClick={() => setCompletingBook(null)} aria-label="Close" disabled={isCompletingBook}>
@@ -611,8 +651,9 @@ export default function TBRTracker() {
           aria-labelledby="confirmDeleteTitle"
           onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
           onKeyDown={e => { if (e.key === 'Escape' && !isDeleting) setConfirmDelete(null); }}
+          tabIndex={-1}
         >
-          <div className="login-modal">
+          <div className="login-modal" ref={deleteTrapRef}>
             <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
             <p className="bd-synopsis bd-synopsis--muted">
               {confirmDelete.title} will be removed from your reading list.
@@ -632,8 +673,14 @@ export default function TBRTracker() {
         <span className="undo-toast-message">
           &ldquo;{undoBook?.title?.length > 30 ? undoBook.title.slice(0, 28) + '…' : undoBook?.title}&rdquo; deleted
         </span>
-        <button className="undo-toast-btn" onClick={handleUndo}>Undo</button>
+        <button className="undo-toast-btn" onClick={handleUndo} disabled={isUndoing}>
+          {isUndoing ? 'Restoring…' : 'Undo'}
+        </button>
       </div>
+
+      {deleteError && (
+        <div className="error-toast" role="alert">{deleteError}</div>
+      )}
 
     </div>
   );
