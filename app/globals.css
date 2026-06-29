@@ -693,6 +693,12 @@ html.dark .cover-placeholder-dark { display: block; }
   z-index: 20;
 }
 
+.delete-btn-icon::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
 .book-card-select-btn {
   position: absolute;
   inset: 0;
@@ -824,6 +830,15 @@ input:not([type="file"]):not([type="hidden"]):hover,
 select:hover,
 textarea:hover {
   border-color: var(--border-strong);
+}
+
+/* Prevent iOS Safari from zooming in on focused inputs (requires ≥16px) */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 input:not([type="file"]):not([type="hidden"]):focus,
@@ -1243,6 +1258,8 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
+
+.bd-drawer-body--gap-lg { gap: var(--spacing-4); }
 
 /* Cover + side-meta row at top */
 .bd-cover-row {

@@ -512,6 +512,7 @@ export default function TBRTracker() {
           aria-modal="true"
           aria-labelledby="tbrDetailTitle"
           onClick={e => { if (e.target === e.currentTarget) setDetailBook(null); }}
+          onKeyDown={e => { if (e.key === 'Escape') setDetailBook(null); }}
         >
           <div className="book-detail-modal">
             <div className="bd-drawer-header">
@@ -522,7 +523,7 @@ export default function TBRTracker() {
                 </svg>
               </button>
             </div>
-            <div className="bd-drawer-body" style={{ gap: 16 }}>
+            <div className="bd-drawer-body bd-drawer-body--gap-lg">
               <div className="bd-centered-layout">
                 <div className="bd-cover-lg">
                   {detailBook.coverImage
@@ -565,7 +566,7 @@ export default function TBRTracker() {
                 </svg>
               </button>
             </div>
-            <div className="bd-drawer-body" style={{ gap: 16 }}>
+            <div className="bd-drawer-body bd-drawer-body--gap-lg">
               <div className="bd-centered-layout">
                 <div className="bd-cover-lg">
                   {completingBook.coverImage
@@ -590,7 +591,7 @@ export default function TBRTracker() {
                 </div>
               </div>
               {completingBook.synopsis && (
-                <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{completingBook.synopsis}</p>
+                <p className="bd-synopsis">{completingBook.synopsis}</p>
               )}
             </div>
             <div className="bd-drawer-footer">
@@ -609,6 +610,7 @@ export default function TBRTracker() {
           aria-modal="true"
           aria-labelledby="confirmDeleteTitle"
           onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+          onKeyDown={e => { if (e.key === 'Escape' && !isDeleting) setConfirmDelete(null); }}
         >
           <div className="login-modal">
             <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
@@ -616,8 +618,8 @@ export default function TBRTracker() {
               {confirmDelete.title} will be removed from your reading list.
             </p>
             <div className="login-modal-footer">
-              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus disabled={isDeleting}>Cancel</button>
-              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook} disabled={isDeleting}>
+              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} disabled={isDeleting}>Cancel</button>
+              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook} disabled={isDeleting} autoFocus>
                 {isDeleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
