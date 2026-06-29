@@ -60,6 +60,10 @@ export default function TBRTracker() {
   const [completingRatingHover, setCompletingRatingHover] = useState(0);
   const [completingDate, setCompletingDate] = useState('');
   const [isCompletingBook, setIsCompletingBook] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, title }
+  const [undoBook, setUndoBook] = useState(null);
+  const undoTimerRef = useRef(null);
+  const deletedCacheRef = useRef(null);
   const gsapTimelinesRef = useRef([]);
 
   useEffect(() => {
@@ -205,8 +209,54 @@ export default function TBRTracker() {
   }
 
   async function handleDelete(id) {
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+    deletedCacheRef.current = { ...book };
     setBooks(prev => prev.filter(b => b.id !== id));
     await supabase.from('tbr_books').delete().eq('id', id);
+    showUndo(deletedCacheRef.current);
+  }
+
+  async function confirmDeleteBook() {
+    if (!confirmDelete) return;
+    const pending = confirmDelete;
+    setConfirmDelete(null);
+    await handleDelete(pending.id);
+  }
+
+  function showUndo(book) {
+    clearTimeout(undoTimerRef.current);
+    setUndoBook(book);
+    undoTimerRef.current = setTimeout(() => {
+      setUndoBook(null);
+      deletedCacheRef.current = null;
+    }, 5000);
+  }
+
+  async function handleUndo() {
+    const book = deletedCacheRef.current;
+    if (!book) return;
+    clearTimeout(undoTimerRef.current);
+    setUndoBook(null);
+    deletedCacheRef.current = null;
+    try {
+      const { data, error } = await supabase
+        .from('tbr_books')
+        .insert([{
+          user_id: OWNER_UUID,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          rating: book.rating || null,
+          cover_image: book.coverImage,
+          synopsis: book.synopsis,
+        }])
+        .select();
+      if (error) throw error;
+      setBooks(prev => [{ ...book, id: data[0].id }, ...prev]);
+    } catch (err) {
+      console.error('Failed to undo delete:', err);
+    }
   }
 
   function openCompleteModal(book) {
@@ -419,7 +469,7 @@ export default function TBRTracker() {
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             Completed
                           </button>
-                          <button className="book-menu-item delete-item" onClick={async e => { e.stopPropagation(); setOpenMenuId(null); await handleDelete(book.id); }}>
+                          <button className="book-menu-item delete-item" onClick={e => { e.stopPropagation(); setOpenMenuId(null); setConfirmDelete({ id: book.id, title: book.title }); }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                             Delete
                           </button>
@@ -544,6 +594,36 @@ export default function TBRTracker() {
           </div>
         </div>
       )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {confirmDelete && (
+        <div
+          className="login-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirmDeleteTitle"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+        >
+          <div className="login-modal">
+            <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              {confirmDelete.title} will be removed from your reading list.
+            </p>
+            <div className="login-modal-footer">
+              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus>Cancel</button>
+              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Undo Toast ── */}
+      <div className={`undo-toast${undoBook ? ' active' : ''}`} role="status" aria-live="polite">
+        <span className="undo-toast-message">
+          &ldquo;{undoBook?.title?.length > 30 ? undoBook.title.slice(0, 28) + '…' : undoBook?.title}&rdquo; deleted
+        </span>
+        <button className="undo-toast-btn" onClick={handleUndo}>Undo</button>
+      </div>
 
     </div>
   );
