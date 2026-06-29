@@ -680,28 +680,33 @@ html.dark .cover-placeholder-dark { display: block; }
 
 .delete-btn-icon {
   position: absolute;
-  top: 6px; right: 6px;
-  width: 26px; height: 26px;
+  top: -3px; right: -3px;
+  width: 44px; height: 44px;
   border-radius: 5px;
-  background: rgba(255,255,255,0.9);
+  background: transparent;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, box-shadow 0.12s, opacity 0.15s;
+  transition: opacity 0.15s;
   padding: 0;
   opacity: 0;
-  box-shadow: var(--shadow-xs);
-  backdrop-filter: blur(4px);
   z-index: 20;
 }
 
 .delete-btn-icon::before {
   content: '';
   position: absolute;
-  inset: -9px;
+  inset: 9px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  transition: background 0.12s, box-shadow 0.12s;
 }
 
 .book-card-select-btn {
@@ -716,10 +721,12 @@ html.dark .cover-placeholder-dark { display: block; }
 
 .book-card:hover .delete-btn-icon { opacity: 1; }
 .delete-btn-icon:hover {
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
   color: var(--text);
   transform: none;
+}
+.delete-btn-icon:hover::before {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .book-menu {
@@ -797,7 +804,7 @@ html.dark .cover-placeholder-dark { display: block; }
 .empty-state-cta {
   display: inline-flex;
   width: auto;
-  margin-top: 0;
+  margin-top: var(--spacing-2);
 }
 
 /* ═══════════════════════════════════════
@@ -1468,6 +1475,9 @@ html.dark .confirm-delete-btn:hover { filter: brightness(1.15); }
 .bd-btn-cancel:hover { background: var(--surface-2); box-shadow: none; }
 .bd-btn-save   { background: var(--primary); border: 1px solid var(--primary); color: var(--primary-fg); min-width: 110px; box-shadow: var(--shadow-xs); }
 .bd-btn-save:hover { background: var(--primary); opacity: 0.88; box-shadow: var(--shadow-sm); }
+.bd-btn-destructive { background: var(--red); border: 1px solid var(--red); color: var(--white); min-width: 64px; box-shadow: var(--shadow-xs); }
+.bd-btn-destructive:hover { filter: brightness(1.1); box-shadow: var(--shadow-sm); }
+html.dark .bd-btn-destructive:hover { filter: brightness(1.15); }
 
 /* Edit mode form fields */
 .bd-edit-input, .bd-edit-select, .bd-edit-textarea {

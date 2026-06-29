@@ -254,7 +254,7 @@ export default function TBRTracker() {
       deletedCacheRef.current = null;
       setBooks(prev => [book, ...prev.filter(b => b.id !== book.id)]);
       setDeleteError('Could not delete. Please try again.');
-      setTimeout(() => setDeleteError(null), 4000);
+      undoTimerRef.current = setTimeout(() => setDeleteError(null), 4000);
     }
   }
 
@@ -461,7 +461,7 @@ export default function TBRTracker() {
               <h3>Your reading list is empty</h3>
               <p>Books you want to read next will appear here.</p>
               {isOwner && (
-                <AddBookButton style={{ marginTop: 'var(--spacing-2)' }} onClick={() => setShowDrawer(true)} />
+                <AddBookButton className="empty-state-cta" onClick={() => setShowDrawer(true)} />
               )}
             </div>
           ) : (
@@ -499,8 +499,8 @@ export default function TBRTracker() {
                         <button
                           className="delete-btn-icon"
                           data-book-id={book.id}
-                          title="Options"
-                          aria-label="Options"
+                          title={`Options for ${book.title}`}
+                          aria-label={`Options for ${book.title}`}
                           onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === book.id ? null : book.id); }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -659,10 +659,8 @@ export default function TBRTracker() {
               {confirmDelete.title} will be removed from your reading list.
             </p>
             <div className="login-modal-footer">
-              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} disabled={isDeleting}>Cancel</button>
-              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook} disabled={isDeleting} autoFocus>
-                {isDeleting ? 'Deleting…' : 'Delete'}
-              </button>
+              <Button variant="cancel" disabled={isDeleting} onClick={() => setConfirmDelete(null)} autoFocus>Cancel</Button>
+              <Button variant="destructive" loading={isDeleting} onClick={confirmDeleteBook}>Delete</Button>
             </div>
           </div>
         </div>
@@ -673,7 +671,8 @@ export default function TBRTracker() {
         <span className="undo-toast-message">
           &ldquo;{undoBook?.title?.length > 30 ? undoBook.title.slice(0, 28) + '…' : undoBook?.title}&rdquo; deleted
         </span>
-        <button className="undo-toast-btn" onClick={handleUndo} disabled={isUndoing}>
+        <button className="undo-toast-btn" onClick={handleUndo} disabled={isUndoing || isDeleting}>
+          {isUndoing && <span className="btn-spinner" aria-hidden="true" />}
           {isUndoing ? 'Restoring…' : 'Undo'}
         </button>
       </div>

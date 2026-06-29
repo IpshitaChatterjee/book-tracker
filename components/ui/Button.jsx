@@ -1,6 +1,6 @@
 'use client';
 
-export function Button({ variant = 'save', children, onClick, disabled, loading = false, type = 'button', className = '' }) {
+export function Button({ variant = 'save', children, onClick, disabled, loading = false, type = 'button', className = '', autoFocus }) {
   return (
     <button
       type={type}
@@ -8,6 +8,7 @@ export function Button({ variant = 'save', children, onClick, disabled, loading 
       onClick={onClick}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      autoFocus={autoFocus}
     >
       {loading && <span className="btn-spinner" aria-hidden="true" />}
       {children}
