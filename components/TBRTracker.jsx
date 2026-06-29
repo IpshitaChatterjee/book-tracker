@@ -102,6 +102,10 @@ export default function TBRTracker() {
     return () => window.removeEventListener('resize', update);
   }, []);
 
+  useEffect(() => {
+    return () => clearTimeout(undoTimerRef.current);
+  }, []);
+
   useLayoutEffect(() => {
     gsapTimelinesRef.current.forEach(({ tl, card, onEnter, onLeave }) => {
       tl.kill();
@@ -213,8 +217,8 @@ export default function TBRTracker() {
     if (!book) return;
     deletedCacheRef.current = { ...book };
     setBooks(prev => prev.filter(b => b.id !== id));
-    await supabase.from('tbr_books').delete().eq('id', id);
     showUndo(deletedCacheRef.current);
+    await supabase.from('tbr_books').delete().eq('id', id);
   }
 
   async function confirmDeleteBook() {
