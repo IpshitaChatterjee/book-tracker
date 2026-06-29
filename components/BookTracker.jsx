@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react
 import { gsap } from 'gsap';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
+import { AddBookButton } from '@/components/ui/AddBookButton';
 import { StatCard } from '@/components/ui/StatCard';
 import { GenreBadge } from '@/components/ui/GenreBadge';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
@@ -101,6 +102,7 @@ export default function BookTracker() {
 
   // Add Book drawer
   const [showAddDrawer, setShowAddDrawer] = useState(false);
+  const [isAddingBook, setIsAddingBook] = useState(false);
 
   // Add-book form
   const [addTitle, setAddTitle] = useState('');
@@ -116,6 +118,7 @@ export default function BookTracker() {
   const [customGenre, setCustomGenre] = useState('');
   const [showCustomGenre, setShowCustomGenre] = useState(false);
   const [manualSynopsis, setManualSynopsis] = useState('');
+  const [addErrors, setAddErrors] = useState({});
 
   // Detail modal
   const [detailId, setDetailId] = useState(null);
@@ -128,9 +131,13 @@ export default function BookTracker() {
   const [detailEditGenre, setDetailEditGenre] = useState('');
   const [detailEditSynopsis, setDetailEditSynopsis] = useState('');
   const [detailEditDate, setDetailEditDate] = useState('');
+  const [isSavingDetail, setIsSavingDetail] = useState(false);
 
   // Open menus
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, title, fromDetail }
 
   // Login modal
   const [showLogin, setShowLogin] = useState(false);
@@ -156,6 +163,7 @@ export default function BookTracker() {
   const [recCovers, setRecCovers] = useState({});
   const [detailRec, setDetailRec] = useState(null);
   const [openRecMenuId, setOpenRecMenuId] = useState(null);
+  const [isMovingRec, setIsMovingRec] = useState(false);
 
   // Notes modal
 
@@ -237,24 +245,25 @@ export default function BookTracker() {
 
   // Modal scroll lock
   useEffect(() => {
-    document.body.style.overflow = (detailId || showAddDrawer) ? 'hidden' : '';
+    document.body.style.overflow = (detailId || showAddDrawer || confirmDelete) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [detailId, showAddDrawer]);
+  }, [detailId, showAddDrawer, confirmDelete]);
 
   // ESC key
   useEffect(() => {
     function onKey(e) {
       if (e.key !== 'Escape') return;
-      if (detailId) {
+      if (confirmDelete) { setConfirmDelete(null); return; }
+      if (detailId && !isSavingDetail) {
         if (detailMode === 'edit') exitEditMode();
         else closeDetail();
       }
-      if (showAddDrawer) setShowAddDrawer(false);
+      if (showAddDrawer && !isAddingBook) closeAddDrawer();
       if (showLogin) closeLogin();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [detailId, detailMode, showLogin, showAddDrawer]);
+  }, [detailId, detailMode, showLogin, showAddDrawer, confirmDelete, isAddingBook, isSavingDetail]);
 
   // Close open card menu on outside click
   useEffect(() => {
@@ -453,6 +462,11 @@ export default function BookTracker() {
 
   // ─── Add book ──────────────────────────────────────────────
 
+  function closeAddDrawer() {
+    setShowAddDrawer(false);
+    setAddErrors({});
+  }
+
   async function handleCoverFile(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -460,6 +474,19 @@ export default function BookTracker() {
       setAddCover(await compressImage(e.target.result));
     };
     reader.readAsDataURL(file);
+  }
+
+  async function fetchCoverForLookup(title, author) {
+    try {
+      const params = new URLSearchParams({ title, author: author || '', limit: 1, fields: 'cover_i' });
+      const res = await fetch(`https://openlibrary.org/search.json?${params}`);
+      const data = await res.json();
+      const coverId = data.docs?.[0]?.cover_i;
+      if (coverId) {
+        // Don't clobber a cover the user already pasted/uploaded themselves
+        setAddCover(prev => prev || `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`);
+      }
+    } catch { /* silently skip */ }
   }
 
   async function lookupBook(title) {
@@ -500,12 +527,14 @@ export default function BookTracker() {
             setShowCustomGenre(true);
             setManualSynopsis(parsed.synopsis);
             setBookInfo({ author: parsed.author, genre: parsed.genre, synopsis: parsed.synopsis, apiRating: parsed.rating });
+            fetchCoverForLookup(title, parsed.author);
           } else {
             setLookupStatus({ text: `✓ Found: ${parsed.author} — ${parsed.genre}`, color: 'var(--green-light)' });
             setManualAuthor(parsed.author);
             setManualGenre(parsed.genre);
             setManualSynopsis(parsed.synopsis);
             setBookInfo({ author: parsed.author, genre: parsed.genre, synopsis: parsed.synopsis, apiRating: parsed.rating });
+            fetchCoverForLookup(title, parsed.author);
           }
         }
       } catch {
@@ -516,14 +545,23 @@ export default function BookTracker() {
   }
 
   async function handleAddBook() {
-    if (!addTitle.trim()) return;
-    if (!addRating) return;
-    if (!addDate) return;
+    if (isAddingBook) return;
+
+    const errors = {};
+    if (!addTitle.trim()) errors.title = 'Title is required';
+    if (!addRating) errors.rating = 'Select a rating';
+    if (!addDate) errors.date = 'Date finished is required';
+    if (manualGenre === 'Other' && !customGenre.trim()) errors.genre = 'Enter a name for the new genre';
+
+    if (Object.keys(errors).length > 0) {
+      setAddErrors(errors);
+      return;
+    }
+    setAddErrors({});
 
     let finalGenre = 'Other', finalAuthor = manualAuthor.trim(), finalSynopsis = manualSynopsis.trim(), finalApiRating = bookInfo?.apiRating || '';
 
     if (manualGenre === 'Other') {
-      if (!customGenre.trim()) return;
       const norm = customGenre.trim().split(' ').map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       const match = allGenres.find(g => g.toLowerCase() === norm.toLowerCase());
       finalGenre = match || norm;
@@ -543,6 +581,7 @@ export default function BookTracker() {
       apiRating: finalApiRating,
     };
 
+    setIsAddingBook(true);
     try {
       const newId = await saveBookToSupabase(book);
       book.id = newId;
@@ -562,11 +601,14 @@ export default function BookTracker() {
       setCustomGenre('');
       setShowCustomGenre(false);
       setManualSynopsis('');
+      setAddErrors({});
 
       setShowAddDrawer(false);
     } catch (err) {
       console.error('Error adding book:', err);
       alert('Error adding book. Check console for details.');
+    } finally {
+      setIsAddingBook(false);
     }
   }
 
@@ -583,6 +625,17 @@ export default function BookTracker() {
     deletedCacheRef.current = { ...book };
     await deleteBook(bookId);
     showUndo(deletedCacheRef.current);
+  }
+
+  async function confirmDeleteBook() {
+    if (!confirmDelete) return;
+    const pending = confirmDelete;
+    setConfirmDelete(null);
+    if (pending.fromDetail) {
+      await handleDeleteFromDetail();
+    } else {
+      await handleDeleteBook(pending.id);
+    }
   }
 
   async function handleMoveToTBR(bookId) {
@@ -654,6 +707,7 @@ export default function BookTracker() {
   }
 
   async function saveDetailChanges() {
+    if (isSavingDetail) return;
     const book = books.find(b => b.id === detailId);
     if (!book) return;
     if (!detailEditTitle.trim() || !detailEditDate) return;
@@ -669,12 +723,15 @@ export default function BookTracker() {
       coverImage: detailEditCover !== undefined ? detailEditCover : book.coverImage,
     };
 
+    setIsSavingDetail(true);
     try {
       await updateBookInSupabase(updated);
       setBooks(prev => prev.map(b => b.id === updated.id ? updated : b));
       closeDetail();
     } catch (err) {
       console.error('Failed to save changes:', err);
+    } finally {
+      setIsSavingDetail(false);
     }
   }
 
@@ -723,15 +780,21 @@ export default function BookTracker() {
   // ─── Recommendations ───────────────────────────────────────
 
   async function handleMoveRecToTBR(rec, cover) {
-    await supabase.from('tbr_books').insert([{
-      user_id: OWNER_UUID,
-      title: rec.title,
-      author: rec.author,
-      genre: rec.genre,
-      cover_image: cover || null,
-      synopsis: rec.reason,
-    }]);
-    setRecs(prev => prev.filter(r => r.title !== rec.title));
+    if (isMovingRec) return;
+    setIsMovingRec(true);
+    try {
+      await supabase.from('tbr_books').insert([{
+        user_id: OWNER_UUID,
+        title: rec.title,
+        author: rec.author,
+        genre: rec.genre,
+        cover_image: cover || null,
+        synopsis: rec.reason,
+      }]);
+      setRecs(prev => prev.filter(r => r.title !== rec.title));
+    } finally {
+      setIsMovingRec(false);
+    }
   }
 
   async function fetchCoverForRec(rec, index) {
@@ -908,12 +971,7 @@ export default function BookTracker() {
                 </select>
               </div>
               {isOwner && (
-                <button className="add-book-cta" onClick={() => setShowAddDrawer(true)} aria-label="Add a book">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                  Add Book
-                </button>
+                <AddBookButton onClick={() => setShowAddDrawer(true)} aria-label="Add a book" />
               )}
             </div>
           </div>
@@ -962,8 +1020,18 @@ export default function BookTracker() {
                   className="book-card"
                   data-book-id={book.id}
                   title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
                   onClick={(e) => {
                     if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) {
+                      openDetail(book.id);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
                       openDetail(book.id);
                     }
                   }}
@@ -1009,7 +1077,7 @@ export default function BookTracker() {
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                           Move to TBR
                         </button>
-                        <button className="book-menu-item delete-item" onClick={async (e) => { e.stopPropagation(); setOpenMenuId(null); await handleDeleteBook(book.id); }}>
+                        <button className="book-menu-item delete-item" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setConfirmDelete({ id: book.id, title: book.title }); }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                           Delete
                         </button>
@@ -1031,14 +1099,17 @@ export default function BookTracker() {
           <div id="recommendations" className={`tab-content${activeTab === 'recommendations' ? ' active' : ''}`}>
             <div className="section-header">
               <h2 className="section-title">Discover the Next Read</h2>
-              {!recsLoading && (
-                <button className="add-book-cta" onClick={() => { setRecs(null); setRecCovers({}); generateRecommendations(); }}>
+              <AddBookButton
+                loading={recsLoading}
+                icon={
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                   </svg>
-                  Refresh
-                </button>
-              )}
+                }
+                onClick={() => { setRecs(null); setRecCovers({}); generateRecommendations(); }}
+              >
+                Refresh
+              </AddBookButton>
             </div>
             {/* Spacer matching stats section height so shelf aligns with other pages */}
             <div style={{ height: 99 }} aria-hidden="true" />
@@ -1072,7 +1143,17 @@ export default function BookTracker() {
                         className="book-card"
                         data-book-id={`rec-${i}`}
                         title={`${rec.title}${rec.author ? ' — ' + rec.author : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View details for ${rec.title}${rec.author ? ' by ' + rec.author : ''}`}
                         onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailRec({ ...rec, cover: recCovers[i] || null }); }}
+                        onKeyDown={e => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setDetailRec({ ...rec, cover: recCovers[i] || null });
+                          }
+                        }}
                       >
                         <div className="books__cover">
                           <div className="books__back-cover" />
@@ -1140,14 +1221,14 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="bdTitle"
-          onClick={e => { if (e.target === e.currentTarget) closeDetail(); }}
+          onClick={e => { if (e.target === e.currentTarget && !isSavingDetail) closeDetail(); }}
         >
           <div className="book-detail-modal">
 
             {/* Sticky header with close button */}
             <div className="bd-drawer-header">
               <span className="bd-drawer-title">Book Details</span>
-              <button className="book-detail-close" onClick={closeDetail} aria-label="Close">
+              <button className="book-detail-close" onClick={closeDetail} aria-label="Close" disabled={isSavingDetail}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -1233,15 +1314,15 @@ export default function BookTracker() {
             <div className="bd-drawer-footer">
               {detailMode === 'view' && isOwner && (
                 <>
-                  <Button variant="delete" onClick={handleDeleteFromDetail}>Delete</Button>
+                  <Button variant="delete" onClick={() => setConfirmDelete({ id: detailId, title: detailBook?.title, fromDetail: true })}>Delete</Button>
                   <Button variant="edit" onClick={() => enterEditMode()}>Edit</Button>
                 </>
               )}
               {detailMode === 'edit' && (
                 <>
-                  <Button variant="delete" onClick={handleDeleteFromDetail}>Delete</Button>
-                  <Button variant="cancel" onClick={exitEditMode}>Cancel</Button>
-                  <Button variant="save" onClick={saveDetailChanges}>Save Changes</Button>
+                  <Button variant="delete" disabled={isSavingDetail} onClick={() => setConfirmDelete({ id: detailId, title: detailBook?.title, fromDetail: true })}>Delete</Button>
+                  <Button variant="cancel" disabled={isSavingDetail} onClick={exitEditMode}>Cancel</Button>
+                  <Button variant="save" loading={isSavingDetail} onClick={saveDetailChanges}>Save Changes</Button>
                 </>
               )}
             </div>
@@ -1257,14 +1338,14 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="addDrawerTitle"
-          onClick={e => { if (e.target === e.currentTarget) setShowAddDrawer(false); }}
+          onClick={e => { if (e.target === e.currentTarget && !isAddingBook) closeAddDrawer(); }}
         >
           <div className="book-detail-modal">
 
             {/* Sticky header */}
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="addDrawerTitle">Add Book</span>
-              <button className="book-detail-close" onClick={() => setShowAddDrawer(false)} aria-label="Close">
+              <button className="book-detail-close" onClick={closeAddDrawer} aria-label="Close" disabled={isAddingBook}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -1291,12 +1372,14 @@ export default function BookTracker() {
                 <div className="bd-cover-meta">
                   <input
                     type="text"
-                    className="bd-edit-input bd-edit-title-input"
+                    className={`bd-edit-input bd-edit-title-input${addErrors.title ? ' field-invalid' : ''}`}
                     aria-label="Title"
+                    aria-invalid={addErrors.title ? 'true' : undefined}
                     placeholder="Book title..."
                     value={addTitle}
-                    onChange={e => { setAddTitle(e.target.value); lookupBook(e.target.value); }}
+                    onChange={e => { setAddTitle(e.target.value); lookupBook(e.target.value); if (addErrors.title) setAddErrors(prev => ({ ...prev, title: undefined })); }}
                   />
+                  {addErrors.title && <div className="field-error">{addErrors.title}</div>}
                   {lookupStatus.text && (
                     <div className="bd-lookup-status" style={{ color: lookupStatus.color }}>{lookupStatus.text}</div>
                   )}
@@ -1316,6 +1399,7 @@ export default function BookTracker() {
                       setManualGenre(e.target.value);
                       setShowCustomGenre(e.target.value === 'Other');
                       if (e.target.value !== 'Other') setCustomGenre('');
+                      if (addErrors.genre) setAddErrors(prev => ({ ...prev, genre: undefined }));
                     }}
                   >
                     <option value="">Genre...</option>
@@ -1326,19 +1410,30 @@ export default function BookTracker() {
                     <StarRatingInput
                       rating={addRating}
                       hover={addRatingHover}
-                      onRate={setAddRating}
+                      onRate={r => { setAddRating(r); if (addErrors.rating) setAddErrors(prev => ({ ...prev, rating: undefined })); }}
                       onHover={setAddRatingHover}
                       onLeave={() => setAddRatingHover(0)}
                     />
                   </div>
+                  {addErrors.rating && <div className="field-error">{addErrors.rating}</div>}
                 </div>
               </div>
 
               {/* Custom genre input */}
               {showCustomGenre && (
                 <div className="form-group" style={{ margin: 0 }}>
-                  <input type="text" className="bd-edit-input" style={{ width: '100%', boxSizing: 'border-box' }} value={customGenre} placeholder="Enter custom genre name..." onChange={e => setCustomGenre(e.target.value)} />
-                  <div className="genre-hint" style={{ marginTop: 4 }}>This genre will be added to the dropdown for future use</div>
+                  <input
+                    type="text"
+                    className={`bd-edit-input${addErrors.genre ? ' field-invalid' : ''}`}
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                    value={customGenre}
+                    placeholder="Enter custom genre name..."
+                    aria-invalid={addErrors.genre ? 'true' : undefined}
+                    onChange={e => { setCustomGenre(e.target.value); if (addErrors.genre) setAddErrors(prev => ({ ...prev, genre: undefined })); }}
+                  />
+                  {addErrors.genre
+                    ? <div className="field-error">{addErrors.genre}</div>
+                    : <div className="genre-hint" style={{ marginTop: 4 }}>This genre will be added to the dropdown for future use</div>}
                 </div>
               )}
 
@@ -1354,7 +1449,16 @@ export default function BookTracker() {
               {/* Date */}
               <div className="bd-edit-date-wrap">
                 <label className="bd-edit-label" htmlFor="addDateFinished">Date finished</label>
-                <input type="date" className="bd-edit-input" id="addDateFinished" style={{ width: 'auto' }} value={addDate} onChange={e => setAddDate(e.target.value)} />
+                <input
+                  type="date"
+                  className={`bd-edit-input${addErrors.date ? ' field-invalid' : ''}`}
+                  id="addDateFinished"
+                  style={{ width: 'auto' }}
+                  value={addDate}
+                  aria-invalid={addErrors.date ? 'true' : undefined}
+                  onChange={e => { setAddDate(e.target.value); if (addErrors.date) setAddErrors(prev => ({ ...prev, date: undefined })); }}
+                />
+                {addErrors.date && <div className="field-error">{addErrors.date}</div>}
               </div>
 
 
@@ -1362,8 +1466,8 @@ export default function BookTracker() {
 
             {/* Sticky footer */}
             <div className="bd-drawer-footer">
-              <Button variant="cancel" onClick={() => setShowAddDrawer(false)}>Cancel</Button>
-              <Button variant="save" onClick={handleAddBook}>Add Book</Button>
+              <Button variant="cancel" disabled={isAddingBook} onClick={closeAddDrawer}>Cancel</Button>
+              <Button variant="save" loading={isAddingBook} onClick={handleAddBook}>Add Book</Button>
             </div>
 
           </div>
@@ -1403,6 +1507,28 @@ export default function BookTracker() {
         </div>
       )}
 
+      {/* ── Delete Confirmation Modal ── */}
+      {confirmDelete && (
+        <div
+          className="login-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirmDeleteTitle"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+        >
+          <div className="login-modal">
+            <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              {confirmDelete.title} will be removed from your library.
+            </p>
+            <div className="login-modal-footer">
+              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus>Cancel</button>
+              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Undo Toast ── */}
       {/* ── Rec Detail Drawer ── */}
       {detailRec && (
@@ -1411,12 +1537,12 @@ export default function BookTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="recDetailTitle"
-          onClick={e => { if (e.target === e.currentTarget) setDetailRec(null); }}
+          onClick={e => { if (e.target === e.currentTarget && !isMovingRec) setDetailRec(null); }}
         >
           <div className="book-detail-modal">
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="recDetailTitle">Book Details</span>
-              <button className="book-detail-close" onClick={() => setDetailRec(null)} aria-label="Close">
+              <button className="book-detail-close" onClick={() => setDetailRec(null)} aria-label="Close" disabled={isMovingRec}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -1447,8 +1573,8 @@ export default function BookTracker() {
             </div>
             {isOwner && (
               <div className="bd-drawer-footer">
-                <Button variant="cancel" onClick={() => setDetailRec(null)}>Close</Button>
-                <Button variant="save" onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</Button>
+                <Button variant="cancel" disabled={isMovingRec} onClick={() => setDetailRec(null)}>Close</Button>
+                <Button variant="save" loading={isMovingRec} onClick={async () => { await handleMoveRecToTBR(detailRec, detailRec.cover); setDetailRec(null); }}>Move to TBR</Button>
               </div>
             )}
           </div>

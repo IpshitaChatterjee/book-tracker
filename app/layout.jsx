@@ -1,5 +1,6 @@
 import { Plus_Jakarta_Sans, Crimson_Text } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
+import { Agentation } from 'agentation';
 import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -35,6 +36,7 @@ export default function RootLayout({ children }) {
       <body suppressHydrationWarning>
         {children}
         <Analytics />
+        {process.env.NODE_ENV === 'development' && <Agentation />}
       </body>
     </html>
   );

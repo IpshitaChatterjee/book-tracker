@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import AddBookDrawer from './AddBookDrawer';
 import { supabase, OWNER_UUID } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
+import { AddBookButton } from '@/components/ui/AddBookButton';
 import { StatCard } from '@/components/ui/StatCard';
 import { GenreBadge } from '@/components/ui/GenreBadge';
 import { CoverPlaceholder } from '@/components/ui/CoverPlaceholder';
@@ -58,6 +59,11 @@ export default function TBRTracker() {
   const [completingRating, setCompletingRating] = useState(0);
   const [completingRatingHover, setCompletingRatingHover] = useState(0);
   const [completingDate, setCompletingDate] = useState('');
+  const [isCompletingBook, setIsCompletingBook] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, title }
+  const [undoBook, setUndoBook] = useState(null);
+  const undoTimerRef = useRef(null);
+  const deletedCacheRef = useRef(null);
   const gsapTimelinesRef = useRef([]);
 
   useEffect(() => {
@@ -203,8 +209,54 @@ export default function TBRTracker() {
   }
 
   async function handleDelete(id) {
+    const book = books.find(b => b.id === id);
+    if (!book) return;
+    deletedCacheRef.current = { ...book };
     setBooks(prev => prev.filter(b => b.id !== id));
     await supabase.from('tbr_books').delete().eq('id', id);
+    showUndo(deletedCacheRef.current);
+  }
+
+  async function confirmDeleteBook() {
+    if (!confirmDelete) return;
+    const pending = confirmDelete;
+    setConfirmDelete(null);
+    await handleDelete(pending.id);
+  }
+
+  function showUndo(book) {
+    clearTimeout(undoTimerRef.current);
+    setUndoBook(book);
+    undoTimerRef.current = setTimeout(() => {
+      setUndoBook(null);
+      deletedCacheRef.current = null;
+    }, 5000);
+  }
+
+  async function handleUndo() {
+    const book = deletedCacheRef.current;
+    if (!book) return;
+    clearTimeout(undoTimerRef.current);
+    setUndoBook(null);
+    deletedCacheRef.current = null;
+    try {
+      const { data, error } = await supabase
+        .from('tbr_books')
+        .insert([{
+          user_id: OWNER_UUID,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          rating: book.rating || null,
+          cover_image: book.coverImage,
+          synopsis: book.synopsis,
+        }])
+        .select();
+      if (error) throw error;
+      setBooks(prev => [{ ...book, id: data[0].id }, ...prev]);
+    } catch (err) {
+      console.error('Failed to undo delete:', err);
+    }
   }
 
   function openCompleteModal(book) {
@@ -215,21 +267,26 @@ export default function TBRTracker() {
   }
 
   async function handleConfirmComplete() {
-    if (!completingBook) return;
+    if (!completingBook || isCompletingBook) return;
     const book = completingBook;
-    setCompletingBook(null);
-    setBooks(prev => prev.filter(b => b.id !== book.id));
-    await supabase.from('books').insert([{
-      user_id: OWNER_UUID,
-      title: book.title,
-      author: book.author,
-      genre: book.genre,
-      rating: completingRating || null,
-      date_finished: completingDate,
-      cover_image: book.coverImage,
-      synopsis: book.synopsis,
-    }]);
-    await supabase.from('tbr_books').delete().eq('id', book.id);
+    setIsCompletingBook(true);
+    try {
+      setBooks(prev => prev.filter(b => b.id !== book.id));
+      await supabase.from('books').insert([{
+        user_id: OWNER_UUID,
+        title: book.title,
+        author: book.author,
+        genre: book.genre,
+        rating: completingRating || null,
+        date_finished: completingDate,
+        cover_image: book.coverImage,
+        synopsis: book.synopsis,
+      }]);
+      await supabase.from('tbr_books').delete().eq('id', book.id);
+      setCompletingBook(null);
+    } finally {
+      setIsCompletingBook(false);
+    }
   }
 
   function toggleDark() {
@@ -332,12 +389,7 @@ export default function TBRTracker() {
           <div className="section-header">
             <h2 className="section-title">To Be Read</h2>
             {isOwner && (
-              <button className="add-book-cta" onClick={() => setShowDrawer(true)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Add Book
-              </button>
+              <AddBookButton onClick={() => setShowDrawer(true)} />
             )}
           </div>
 
@@ -360,12 +412,7 @@ export default function TBRTracker() {
               <h3>Your reading list is empty</h3>
               <p>Books you want to read next will appear here.</p>
               {isOwner && (
-                <button className="add-book-cta" style={{ marginTop: 8 }} onClick={() => setShowDrawer(true)}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                  Add Book
-                </button>
+                <AddBookButton style={{ marginTop: 8 }} onClick={() => setShowDrawer(true)} />
               )}
             </div>
           ) : (
@@ -376,7 +423,17 @@ export default function TBRTracker() {
                     className="book-card tbr-book-card"
                     data-book-id={book.id}
                     title={`${book.title}${book.author ? ' — ' + book.author : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View details for ${book.title}${book.author ? ' by ' + book.author : ''}`}
                     onClick={e => { if (!e.target.closest('.book-menu') && !e.target.closest('.delete-btn-icon')) setDetailBook(book); }}
+                    onKeyDown={e => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setDetailBook(book);
+                      }
+                    }}
                   >
                     <div className="books__cover">
                       <div className="books__back-cover" />
@@ -412,7 +469,7 @@ export default function TBRTracker() {
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             Completed
                           </button>
-                          <button className="book-menu-item delete-item" onClick={async e => { e.stopPropagation(); setOpenMenuId(null); await handleDelete(book.id); }}>
+                          <button className="book-menu-item delete-item" onClick={e => { e.stopPropagation(); setOpenMenuId(null); setConfirmDelete({ id: book.id, title: book.title }); }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                             Delete
                           </button>
@@ -491,12 +548,12 @@ export default function TBRTracker() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="completeModalTitle"
-          onClick={e => { if (e.target === e.currentTarget) setCompletingBook(null); }}
+          onClick={e => { if (e.target === e.currentTarget && !isCompletingBook) setCompletingBook(null); }}
         >
           <div className="book-detail-modal">
             <div className="bd-drawer-header">
               <span className="bd-drawer-title" id="completeModalTitle">Mark as Completed</span>
-              <button className="book-detail-close" onClick={() => setCompletingBook(null)} aria-label="Close">
+              <button className="book-detail-close" onClick={() => setCompletingBook(null)} aria-label="Close" disabled={isCompletingBook}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -519,21 +576,54 @@ export default function TBRTracker() {
                   onHover={setCompletingRatingHover}
                   onLeave={() => setCompletingRatingHover(0)}
                 />
-                <input type="date" className="bd-edit-input" id="completingDate"
-                  style={{ width: 'auto' }} value={completingDate}
-                  onChange={e => setCompletingDate(e.target.value)} />
+                <div className="bd-edit-date-wrap">
+                  <label className="bd-edit-label" htmlFor="completingDate">Date finished</label>
+                  <input type="date" className="bd-edit-input" id="completingDate"
+                    style={{ width: 'auto' }} value={completingDate}
+                    onChange={e => setCompletingDate(e.target.value)} />
+                </div>
               </div>
               {completingBook.synopsis && (
                 <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{completingBook.synopsis}</p>
               )}
             </div>
             <div className="bd-drawer-footer">
-              <Button variant="cancel" onClick={() => setCompletingBook(null)}>Cancel</Button>
-              <Button variant="save" onClick={handleConfirmComplete}>Move to Completed</Button>
+              <Button variant="cancel" disabled={isCompletingBook} onClick={() => setCompletingBook(null)}>Cancel</Button>
+              <Button variant="save" loading={isCompletingBook} onClick={handleConfirmComplete}>Move to Completed</Button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {confirmDelete && (
+        <div
+          className="login-overlay active"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirmDeleteTitle"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+        >
+          <div className="login-modal">
+            <div className="bd-drawer-title" id="confirmDeleteTitle">Delete this book?</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              {confirmDelete.title} will be removed from your reading list.
+            </p>
+            <div className="login-modal-footer">
+              <button type="button" className="cancel-btn" onClick={() => setConfirmDelete(null)} autoFocus>Cancel</button>
+              <button type="button" className="confirm-delete-btn" onClick={confirmDeleteBook}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Undo Toast ── */}
+      <div className={`undo-toast${undoBook ? ' active' : ''}`} role="status" aria-live="polite">
+        <span className="undo-toast-message">
+          &ldquo;{undoBook?.title?.length > 30 ? undoBook.title.slice(0, 28) + '…' : undoBook?.title}&rdquo; deleted
+        </span>
+        <button className="undo-toast-btn" onClick={handleUndo}>Undo</button>
+      </div>
 
     </div>
   );
